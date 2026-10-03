@@ -9,6 +9,7 @@ export * from '@database/entities/intervention-report.entity';
 export * from '@database/entities/intervention.entity';
 export * from '@database/entities/organization.entity';
 export * from '@database/entities/refresh-token.entity';
+export * from '@database/entities/sms-message.entity';
 export * from '@database/entities/sub-device.entity';
 export * from '@database/entities/tariff-group.entity';
 export * from '@database/entities/team-position.entity';
@@ -27,6 +28,7 @@ import { InterventionReport } from '@database/entities/intervention-report.entit
 import { Intervention } from '@database/entities/intervention.entity';
 import { Organization } from '@database/entities/organization.entity';
 import { RefreshToken } from '@database/entities/refresh-token.entity';
+import { SmsMessage } from '@database/entities/sms-message.entity';
 import { SubDevice } from '@database/entities/sub-device.entity';
 import { TariffGroup } from '@database/entities/tariff-group.entity';
 import { TeamPosition } from '@database/entities/team-position.entity';
@@ -48,6 +50,7 @@ export const ENTITIES = [
   AlertEvent,
   AlertDispatch,
   VoiceCall,
+  SmsMessage,
   FieldTeam,
   Intervention,
   InterventionReport,

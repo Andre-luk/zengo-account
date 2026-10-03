@@ -46,6 +46,7 @@ export type AlertEventType =
   | 'VOICE_CALL_STARTED'
   | 'VOICE_CALL_UPDATED'
   | 'VOICE_CALL_COMPLETED'
+  | 'SMS_SENT'
   | 'STATUS_CHANGED'
   | 'NOTE_ADDED'
   | 'RESOLVED'
@@ -83,6 +84,51 @@ export type VoiceCallOutcome =
   | 'INTRUSION_CONFIRMED'
   | 'PARTIAL'
   | 'FAILED';
+
+export type SmsMessageStatus = 'QUEUED' | 'SENT' | 'DELIVERED' | 'FAILED' | 'UNDELIVERED';
+export type SmsDirection = 'OUTBOUND' | 'INBOUND';
+export type SmsTemplate =
+  | 'ALERT_RAISED'
+  | 'ALERT_CONFIRMED'
+  | 'MISSION_ASSIGNED'
+  | 'MISSION_ON_SITE'
+  | 'ALERT_CLOSED'
+  | 'CUSTOM';
+export type SmsEncoding = 'GSM7' | 'UCS2';
+
+export interface SmsMessage {
+  id: string;
+  createdAt: string;
+  alertId: string | null;
+  clientId: string | null;
+  interventionId: string | null;
+  direction: SmsDirection;
+  template: SmsTemplate;
+  language: string;
+  provider: string;
+  providerMessageId: string | null;
+  toNumber: string;
+  fromNumber: string | null;
+  body: string;
+  encoding: SmsEncoding;
+  segments: number;
+  status: SmsMessageStatus;
+  attemptNumber: number;
+  errorCode: string | null;
+  errorMessage: string | null;
+  queuedAt: string | null;
+  sentAt: string | null;
+  deliveredAt: string | null;
+  costUsd: string | null;
+}
+
+export interface SmsStats {
+  total: number;
+  byStatus: { status: SmsMessageStatus; count: number }[];
+  acceptanceRate: number | null;
+  deliveryRate: number | null;
+  segments: number;
+}
 
 export type Role =
   | 'SUPER_ADMIN'

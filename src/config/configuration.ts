@@ -77,11 +77,39 @@ export default registerAs('app', () => ({
     callTimeoutSeconds: toInt(process.env.VOICE_CALL_TIMEOUT_SECONDS, 45),
     /** Nombre de tentatives d'appel avant escalade. */
     maxAttempts: toInt(process.env.VOICE_CALL_MAX_ATTEMPTS, 1),
+    /**
+     * Hôtes autorises a servir un enregistrement relu depuis la console, en
+     * plus de Twilio. Les hotes de stockage internes (S3, CDN Zengo) se
+     * declarent ici pour eviter tout relais ouvert.
+     */
+    recordingAllowedHosts: (process.env.TELEPHONY_RECORDING_ALLOWED_HOSTS ?? '')
+      .split(',')
+      .map((entry) => entry.trim())
+      .filter(Boolean),
     twilio: {
       accountSid: process.env.TWILIO_ACCOUNT_SID ?? '',
       authToken: process.env.TWILIO_AUTH_TOKEN ?? '',
       fromNumber: process.env.TWILIO_FROM_NUMBER ?? '',
     },
+  },
+
+  sms: {
+    /** Canal SMS actif : le client est notifie en parallele de l'appel vocal. */
+    enabled: toBool(process.env.SMS_ENABLED, true),
+    provider: (process.env.SMS_PROVIDER ?? 'STUB').toUpperCase(),
+    /** Numero expediteur affiche au client. */
+    fromNumber: process.env.TWILIO_SMS_FROM ?? '',
+    messagingServiceSid: process.env.TWILIO_MESSAGING_SERVICE_SID ?? '',
+    /** URL publique recevant les accuses de remise du fournisseur. */
+    statusCallbackUrl: process.env.SMS_STATUS_CALLBACK_URL ?? '',
+    /** Numero d'urgence rappele dans les SMS d'alerte. */
+    emergencyPhone: process.env.SMS_EMERGENCY_PHONE ?? '+243 970 255 599',
+    /** Envoi automatique du SMS a la creation d'une alerte. */
+    notifyOnAlert: toBool(process.env.SMS_NOTIFY_ON_ALERT, true),
+    /** Notification du client quand une equipe part et quand elle arrive. */
+    notifyOnMission: toBool(process.env.SMS_NOTIFY_ON_MISSION, true),
+    /** Notification du client a la cloture du dossier. */
+    notifyOnClosure: toBool(process.env.SMS_NOTIFY_ON_CLOSURE, true),
   },
 
   devices: {

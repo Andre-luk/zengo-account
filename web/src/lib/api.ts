@@ -148,6 +148,44 @@ const request = async <T>(path: string, options: RequestOptions = {}, isRetry = 
   return payload as T;
 };
 
+/**
+ * Télécharge un contenu binaire protégé (enregistrement d'appel, export...).
+ *
+ * Le jeton n'est pas mis dans l'URL — il voyagerait dans les journaux du
+ * serveur et l'historique du navigateur — on le passe donc en en-tête via
+ * `fetch`, exactement comme pour le reste de l'API.
+ */
+const requestBlob = async (path: string, isRetry = false): Promise<Blob> => {
+  const authToken = currentTokens()?.accessToken ?? null;
+
+  const response = await fetch(buildUrl(path), {
+    headers: { ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) },
+  });
+
+  if (response.status === 401 && !isRetry && authToken) {
+    const refreshed = await refreshTokens();
+    if (refreshed) return requestBlob(path, true);
+
+    onSessionExpired?.();
+    throw new ApiError(401, 'Session expirée. Veuillez vous reconnecter.', 'SESSION_EXPIRED');
+  }
+
+  if (!response.ok) {
+    const payload = (await parseBody(response)) as
+      | { message?: string | string[]; code?: string }
+      | null;
+    const rawMessage = payload?.message ?? `Erreur ${response.status}`;
+    throw new ApiError(
+      response.status,
+      Array.isArray(rawMessage) ? rawMessage.join(' ') : rawMessage,
+      payload?.code,
+      payload,
+    );
+  }
+
+  return response.blob();
+};
+
 export const api = {
   get: <T>(path: string, query?: RequestOptions['query']) => request<T>(path, { query }),
   post: <T>(path: string, body?: unknown, query?: RequestOptions['query']) =>
@@ -155,6 +193,7 @@ export const api = {
   patch: <T>(path: string, body?: unknown) => request<T>(path, { method: 'PATCH', body }),
   /** Certaines ressources utilisent DELETE avec un corps (archivage logique). */
   delete: <T>(path: string, body?: unknown) => request<T>(path, { method: 'DELETE', body }),
+  getBlob: (path: string) => requestBlob(path),
   login: <T>(body: unknown) => request<T>('/auth/login', { method: 'POST', body, skipRefresh: true }),
   logout: (refreshToken: string) => request<{ success: boolean }>('/auth/logout', { method: 'POST', body: { refreshToken } }),
 };

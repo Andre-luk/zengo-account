@@ -134,6 +134,28 @@ export const VOICE_CALL_OUTCOME: Record<string, Described> = {
   FAILED: described('Échec', 'danger'),
 };
 
+export const SMS_STATUS: Record<string, Described> = {
+  QUEUED: described('En file', 'neutral'),
+  SENT: described('Accepté', 'info'),
+  DELIVERED: described('Remis', 'success'),
+  FAILED: described('Échec', 'danger'),
+  UNDELIVERED: described('Non remis', 'warning'),
+};
+
+export const SMS_TEMPLATE: Record<string, Described> = {
+  ALERT_RAISED: described('Alerte détectée', 'critical'),
+  ALERT_CONFIRMED: described('Événement confirmé', 'danger'),
+  MISSION_ASSIGNED: described('Équipe en route', 'brand'),
+  MISSION_ON_SITE: described('Équipe sur place', 'info'),
+  ALERT_CLOSED: described('Dossier clos', 'success'),
+  CUSTOM: described('Message libre', 'neutral'),
+};
+
+export const SMS_DIRECTION: Record<string, Described> = {
+  OUTBOUND: described('Sortant', 'brand'),
+  INBOUND: described('Entrant', 'info'),
+};
+
 // --- Clients -----------------------------------------------------------------
 
 export const CLIENT_STATUS: Record<string, Described> = {

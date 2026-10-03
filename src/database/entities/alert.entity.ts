@@ -16,6 +16,7 @@ import { AlertEvent } from '@database/entities/alert-event.entity';
 import { ClientProfile } from '@database/entities/client-profile.entity';
 import { Device } from '@database/entities/device.entity';
 import { Organization } from '@database/entities/organization.entity';
+import { SmsMessage } from '@database/entities/sms-message.entity';
 import { SubDevice } from '@database/entities/sub-device.entity';
 import { VoiceCall } from '@database/entities/voice-call.entity';
 
@@ -168,6 +169,9 @@ export class Alert extends AppBaseEntity {
 
   @OneToMany(() => VoiceCall, (voiceCall) => voiceCall.alert)
   voiceCalls!: VoiceCall[];
+
+  @OneToMany(() => SmsMessage, (sms) => sms.alert)
+  smsMessages!: SmsMessage[];
 
   @Column({ type: 'jsonb', default: () => `'{}'::jsonb` })
   metadata!: Record<string, unknown>;

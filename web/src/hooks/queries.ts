@@ -20,6 +20,8 @@ import type {
   TariffGroup,
   User,
   VoiceCall,
+  SmsMessage,
+  SmsStats,
 } from '@/types/api';
 
 export type QueryParams = Record<string, string | number | boolean | undefined>;
@@ -65,6 +67,20 @@ export const useAlertVoiceCalls = (id: string | undefined) =>
     queryKey: queryKeys.alertVoiceCalls(id ?? ''),
     queryFn: () => api.get<VoiceCall[]>(`/alerts/${id}/voice-calls`),
     enabled: Boolean(id),
+  });
+
+export const useAlertSms = (id: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.alertSms(id ?? ''),
+    queryFn: () => api.get<{ items: SmsMessage[] }>(`/alerts/${id}/sms`),
+    enabled: Boolean(id),
+  });
+
+export const useSmsStats = () =>
+  useQuery({
+    queryKey: queryKeys.smsStats(),
+    queryFn: () => api.get<SmsStats>('/sms/stats'),
+    staleTime: 60_000,
   });
 
 export const useAlertStations = (organizationId: string | null | undefined) =>

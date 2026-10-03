@@ -39,9 +39,11 @@ Détail : [`ALERTES-ZMC.md`](./ALERTES-ZMC.md).
 
 Reste à traiter dans l'itération 3 (ou en fin d'itération 2) :
 - [x] Application web « console ZMC » (React + Vite) consommant l'API et le canal temps réel
-- [ ] Notification SMS du client en parallèle de l'appel vocal
-- [ ] Enregistrement audio des appels IA exploité dans l'interface (lecture intégrée)
-- [ ] Analyse prédictive : regroupement des incidents par zone et zones à risque
+- [x] Notification SMS du client en parallele de l'appel vocal
+- [x] Enregistrement audio des appels IA exploite dans l'interface (lecture integree)
+- [ ] Analyse predictive : regroupement des incidents par zone et zones a risque
+
+Detail SMS : [`SMS.md`](./SMS.md).
 
 ## Itération 3 — Interventions terrain ✅ (livrée)
 

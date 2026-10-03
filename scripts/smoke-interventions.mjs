@@ -287,6 +287,14 @@ async function main() {
     `${assignedTeam?.name} (${assignedTeam?.station?.name ?? 'station inconnue'}) a ${engagedDistance ?? '?'} m / meilleure ${eligibleTeams[0]?.distance ?? '?'} m`,
   );
 
+  const assignmentSms = await api('GET', `/alerts/${alert.id}/sms`, { token: operator.token });
+  const missionSms = (assignmentSms.data?.items ?? []).find((item) => item.template === 'MISSION_ASSIGNED');
+  check(
+    'SMS « equipe en route » envoye au client a l affectation',
+    Boolean(missionSms) && missionSms.body.includes(assignedTeam?.name ?? '#') && !missionSms.body.includes('{'),
+    missionSms?.body?.slice(0, 90),
+  );
+
   // ---------------------------------------------------------------------------
   console.log('\n3. L alerte suit la mission');
   // ---------------------------------------------------------------------------
@@ -389,6 +397,13 @@ async function main() {
   });
   check('Arrivee sur site confirmee', onSite.status === 201 && onSite.data?.status === 'ON_SITE', onSite.data?.status);
 
+  const onSiteSms = await api('GET', `/alerts/${alert.id}/sms`, { token: operator.token });
+  check(
+    'SMS « equipe sur place » envoye au client',
+    (onSiteSms.data?.items ?? []).some((item) => item.template === 'MISSION_ON_SITE'),
+    (onSiteSms.data?.items ?? []).map((item) => item.template).join(', '),
+  );
+
   const alertInProgress = await api('GET', `/alerts/${alert.id}`, { token: operator.token });
   check(
     'Alerte passee en "intervention en cours"',
@@ -440,6 +455,22 @@ async function main() {
 
   const teamReleased = await api('GET', `/field-teams/${assignedTeam.id}`, { token: operator.token });
   check('Equipe liberee apres cloture', teamReleased.data?.status === 'AVAILABLE', teamReleased.data?.status);
+
+  const closureSms = await api('GET', `/alerts/${alert.id}/sms`, { token: operator.token });
+  const closureMessages = closureSms.data?.items ?? [];
+  const closureNotice = closureMessages.find((item) => item.template === 'ALERT_CLOSED');
+  check(
+    'Le client est informe par SMS du resultat de l intervention',
+    Boolean(closureNotice) && closureNotice.body.includes('incident traite sur place'),
+    closureNotice?.body?.slice(0, 90),
+  );
+  check(
+    'Trois etapes annoncees au client (affectation, arrivee, cloture)',
+    ['MISSION_ASSIGNED', 'MISSION_ON_SITE', 'ALERT_CLOSED'].every((template) =>
+      closureMessages.some((item) => item.template === template),
+    ),
+    closureMessages.map((item) => item.template).join(' -> '),
+  );
 
   // ---------------------------------------------------------------------------
   console.log('\n6. Consultation et statistiques');

@@ -6,9 +6,12 @@ import { Alert } from '@database/entities/alert.entity';
 import { ClientProfile } from '@database/entities/client-profile.entity';
 import { Device } from '@database/entities/device.entity';
 import { Organization } from '@database/entities/organization.entity';
+import { SmsMessage } from '@database/entities/sms-message.entity';
 import { SubDevice } from '@database/entities/sub-device.entity';
 import { VoiceCall } from '@database/entities/voice-call.entity';
 import { AlertLifecycleService } from '@modules/alerts/alert-lifecycle.service';
+import { AlertSmsController } from '@modules/alerts/alert-sms.controller';
+import { AlertSmsService } from '@modules/alerts/alert-sms.service';
 import { AlertVoiceCallService } from '@modules/alerts/alert-voice-call.service';
 import { AlertVoiceCallsController } from '@modules/alerts/alert-voice-calls.controller';
 import { AlertsController } from '@modules/alerts/alerts.controller';
@@ -32,6 +35,7 @@ import { TelephonyModule } from '@modules/telephony/telephony.module';
       AlertEvent,
       AlertDispatch,
       VoiceCall,
+      SmsMessage,
       ClientProfile,
       Device,
       SubDevice,
@@ -40,8 +44,8 @@ import { TelephonyModule } from '@modules/telephony/telephony.module';
     OrganizationsModule,
     TelephonyModule,
   ],
-  controllers: [AlertsController, AlertVoiceCallsController],
-  providers: [AlertsService, AlertLifecycleService, AlertVoiceCallService, AlertsTasks],
-  exports: [AlertsService, AlertLifecycleService, AlertVoiceCallService],
+  controllers: [AlertsController, AlertVoiceCallsController, AlertSmsController],
+  providers: [AlertsService, AlertLifecycleService, AlertVoiceCallService, AlertSmsService, AlertsTasks],
+  exports: [AlertsService, AlertLifecycleService, AlertVoiceCallService, AlertSmsService],
 })
 export class AlertsModule {}

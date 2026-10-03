@@ -32,6 +32,19 @@ const check = (label, condition, detail = '') => {
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
+/**
+ * Attend qu'une valeur devienne disponible : les webhooks fournisseur sont
+ * acquittes immediatement puis traites par le bus d'evenements.
+ */
+const waitFor = async (probe, { attempts = 10, delayMs = 250 } = {}) => {
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    const value = await probe();
+    if (value) return value;
+    await sleep(delayMs);
+  }
+  return null;
+};
+
 const api = async (method, path, { token, body } = {}) => {
   const response = await fetch(`${BASE}${path}`, {
     method,
@@ -345,7 +358,155 @@ async function main() {
   );
 
   // ---------------------------------------------------------------------------
-  console.log('\n6. Indicateurs et diffusion temps reel');
+  console.log('\n7. Relecture de l enregistrement d appel');
+  // ---------------------------------------------------------------------------
+  const recordingAlert = await api('POST', '/alerts', {
+    token: operator.token,
+    body: { type: 'INTRUSION', clientId: clientProfile.data.id, note: 'Test enregistrement.' },
+  });
+  const recordingCalls = await api('GET', `/alerts/${recordingAlert.data.id}/voice-calls`, { token: operator.token });
+  const recordingCall = recordingCalls.data[0];
+
+  const withoutRecording = await api('GET', `/voice-calls/${recordingCall.id}/recording`, { token: operator.token });
+  check(
+    'Aucun enregistrement : relecture refusee explicitement',
+    withoutRecording.status === 404 && withoutRecording.data?.code === 'RECORDING_UNAVAILABLE',
+    String(withoutRecording.status),
+  );
+
+  const hostileRecording = await api('POST', `/voice-calls/webhooks/stub/status`, {
+    body: {
+      CallSid: recordingCall.providerCallId,
+      CallStatus: 'completed',
+      RecordingUrl: 'http://169.254.169.254/latest/meta-data/',
+    },
+  });
+  check('Enregistrement hostile enregistre mais jamais relaye', hostileRecording.status === 200);
+
+  const callsAfterWebhook = await api('GET', `/alerts/${recordingAlert.data.id}/voice-calls`, {
+    token: operator.token,
+  });
+  const callWithRecording = callsAfterWebhook.data.find((call) => call.id === recordingCall.id);
+  // Les webhooks fournisseur sont traites de maniere asynchrone par le bus
+  // d'evenements (le 200 acquitte la reception, pas le traitement) : on laisse
+  // au consommateur le temps d'ecrire l'enregistrement en base.
+  const persistedRecording = await waitFor(async () => {
+    const { data } = await api('GET', `/alerts/${recordingAlert.data.id}/voice-calls`, {
+      token: operator.token,
+    });
+    return data.find((call) => call.id === recordingCall.id)?.recordingUrl ?? null;
+  });
+  check(
+    'URL d enregistrement recue du fournisseur (jamais servie directement)',
+    persistedRecording === 'http://169.254.169.254/latest/meta-data/',
+    persistedRecording ?? callWithRecording?.recordingUrl ?? 'aucune',
+  );
+
+  const relayed = await api('GET', `/voice-calls/${recordingCall.id}/recording`, { token: operator.token });
+  check(
+    'Hote non autorise : le serveur refuse de relayer (403)',
+    relayed.status === 403 && relayed.data?.code === 'RECORDING_HOST_NOT_ALLOWED',
+    `${relayed.status} ${relayed.data?.code ?? ''}`,
+  );
+
+  const anonymousRecording = await api('GET', `/voice-calls/${recordingCall.id}/recording`, {});
+  check('Enregistrement protege par authentification (401)', anonymousRecording.status === 401);
+
+  // ---------------------------------------------------------------------------
+  console.log('\n8. Notification SMS du client');
+  // ---------------------------------------------------------------------------
+  const smsAlert = await api('POST', '/alerts', {
+    token: operator.token,
+    body: { type: 'MEDICAL', clientId: clientProfile.data.id, note: 'Test SMS client.', autoVoiceCall: false },
+  });
+
+  const alertSms = await api('GET', `/alerts/${smsAlert.data.id}/sms`, { token: operator.token });
+  const firstSms = alertSms.data?.items?.[0];
+  check(
+    'SMS envoye en parallele de lappel vocal',
+    alertSms.status === 200 && (alertSms.data?.items?.length ?? 0) === 1,
+    `${alertSms.data?.items?.length ?? 0} message(s)`,
+  );
+  check(
+    'SMS au statut accepte par le fournisseur',
+    firstSms?.status === 'SENT' && firstSms?.provider === 'STUB',
+    `${firstSms?.status} via ${firstSms?.provider}`,
+  );
+  check(
+    'SMS redige dans la langue du client, sans variable non remplacee',
+    firstSms?.language === 'fr' && !firstSms?.body.includes('{'),
+    firstSms?.body?.slice(0, 90),
+  );
+  check(
+    'SMS adresse au numero principal du client',
+    firstSms?.toNumber === clientProfile.data.primaryPhone,
+    firstSms?.toNumber,
+  );
+  check(
+    'SMS decoupe et facture en segments coherents',
+    firstSms?.segments >= 1 && ['GSM7', 'UCS2'].includes(firstSms?.encoding),
+    `${firstSms?.segments} segment(s) ${firstSms?.encoding}`,
+  );
+
+  const timelineWithSms = await api('GET', `/alerts/${smsAlert.data.id}/timeline`, { token: operator.token });
+  check(
+    'Chronologie du dossier enrichie du SMS',
+    (timelineWithSms.data ?? []).some((event) => event.type === 'SMS_SENT'),
+  );
+
+  const resent = await api('POST', `/sms/${firstSms.id}/resend`, { token: operator.token });
+  check(
+    'Renvoi manuel : nouveau message, historique conserve',
+    resent.status === 200 &&
+      resent.data?.message?.id !== firstSms.id &&
+      resent.data?.message?.attemptNumber === 2 &&
+      (await api('GET', `/alerts/${smsAlert.data.id}/sms`, { token: operator.token })).data.items.length === 2,
+    resent.data?.message?.status,
+  );
+
+  const deliveryReport = await api('POST', '/sms/webhooks/stub/status', {
+    body: { MessageSid: firstSms.providerMessageId, MessageStatus: 'delivered', Price: '-0.0450' },
+  });
+  check(
+    'Accuse de remise du fournisseur applique',
+    deliveryReport.status === 200 &&
+      deliveryReport.data?.status === 'DELIVERED' &&
+      (await api('GET', `/alerts/${smsAlert.data.id}/sms`, { token: operator.token })).data.items.find(
+        (item) => item.id === firstSms.id,
+      ).deliveredAt !== null,
+  );
+
+  const smsStats = await api('GET', '/sms/stats', { token: operator.token });
+  check(
+    'Indicateurs du canal SMS',
+    smsStats.status === 200 && smsStats.data.total >= 2 && smsStats.data.acceptanceRate !== null,
+    `${smsStats.data.total} message(s), acceptation ${smsStats.data.acceptanceRate}%, remise ${smsStats.data.deliveryRate}%`,
+  );
+
+  // Le client lit legitimement les messages recus sur son propre dossier :
+  // c'est la trace ecrite de ce que le centre lui a annonce.
+  const clientSmsAccess = await api('GET', `/alerts/${smsAlert.data.id}/sms`, { token: client.token });  check(
+    'Le client relit les SMS recus sur son dossier',
+    clientSmsAccess.status === 200 && (clientSmsAccess.data?.items?.length ?? 0) === 2,
+    `${clientSmsAccess.data?.items?.length ?? 0} message(s)`,
+  );
+
+  // ... mais il ne peut pas ecrire dans le canal : seuls les agents y publient.
+  const clientAttempt = await api('POST', `/alerts/${smsAlert.data.id}/sms`, {
+    token: client.token,
+    body: { body: 'Message ecrit par le client lui-meme.' },
+  });
+  check(
+    'Un client ne peut pas ecrire dans le canal SMS (403)',
+    clientAttempt.status === 403,
+    String(clientAttempt.status),
+  );
+
+  const anonymousSmsAccess = await api('GET', `/alerts/${smsAlert.data.id}/sms`, {});
+  check('Historique SMS protege par authentification (401)', anonymousSmsAccess.status === 401);
+
+  // ---------------------------------------------------------------------------
+  console.log('\n9. Indicateurs et diffusion temps reel');
   // ---------------------------------------------------------------------------
   const stats = await api('GET', '/alerts/stats', { token: operator.token });
   check('Statistiques disponibles', stats.status === 200 && typeof stats.data.open === 'number', `${stats.data.open} ouverte(s)`);

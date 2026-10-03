@@ -28,7 +28,7 @@ import { EmptyState, ErrorState, InlineEmpty, Skeleton } from '@/components/ui/F
 import { Field, Select, Textarea } from '@/components/ui/Field';
 import { Drawer, Modal } from '@/components/ui/Modal';
 import { Tabs } from '@/components/ui/Tabs';
-import { useAlert, useAlertStations, useAlertTimeline, useAlertVoiceCalls, useInterventionsByAlert } from '@/hooks/queries';
+import { useAlert, useAlertSms, useAlertStations, useAlertTimeline, useAlertVoiceCalls, useInterventionsByAlert } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
 import { formatCoordinates, formatDateTime, formatDistance, formatDuration, formatRelative, formatTime } from '@/lib/format';
@@ -54,6 +54,8 @@ import {
 import { useAuthStore } from '@/store/auth';
 import { useUiStore } from '@/store/ui';
 import type { Alert, AlertResolution, DispatchStatus } from '@/types/api';
+import { SmsPanel } from '@/components/alerts/SmsPanel';
+import { RecordingPlayer } from '@/components/alerts/RecordingPlayer';
 
 const OPEN_STATUSES: Alert['status'][] = ['NEW', 'ACKNOWLEDGED', 'ASSIGNED', 'IN_PROGRESS'];
 
@@ -103,6 +105,7 @@ export const AlertDetailDrawer = ({ alertId, onClose }: { alertId: string | null
   const alertQuery = useAlert(alertId ?? undefined);
   const timelineQuery = useAlertTimeline(alertId ?? undefined);
   const callsQuery = useAlertVoiceCalls(alertId ?? undefined);
+  const smsQuery = useAlertSms(alertId ?? undefined);
   const missionsQuery = useInterventionsByAlert(alertId ?? undefined);
   const alert = alertQuery.data;
 
@@ -274,6 +277,7 @@ export const AlertDetailDrawer = ({ alertId, onClose }: { alertId: string | null
                   { id: 'dossier', label: 'Dossier' },
                   { id: 'chronologie', label: 'Chronologie', count: timelineQuery.data?.length },
                   { id: 'appels', label: 'Appels IA', count: callsQuery.data?.length },
+                  { id: 'sms', label: 'SMS client', count: smsQuery.data?.items.length },
                 ]}
                 value={tab}
                 onChange={setTab}
@@ -622,6 +626,12 @@ export const AlertDetailDrawer = ({ alertId, onClose }: { alertId: string | null
                               « {call.transcript} »
                             </p>
                           ) : null}
+                          {call.recordingUrl ? (
+                            <RecordingPlayer
+                              voiceCallId={call.id}
+                              label={`Enregistrement de l'appel (${LANGUAGE[call.language] ?? call.language})`}
+                            />
+                          ) : null}
                           {call.errorMessage ? (
                             <p className="text-xs text-rose-600 dark:text-rose-400">{call.errorMessage}</p>
                           ) : null}
@@ -630,6 +640,10 @@ export const AlertDetailDrawer = ({ alertId, onClose }: { alertId: string | null
                     ))}
                   </div>
                 )
+              ) : null}
+
+              {tab === 'sms' ? (
+                <SmsPanel alertId={alertId ?? ''} query={smsQuery} canSend={canOperate} />
               ) : null}
             </div>
           </>

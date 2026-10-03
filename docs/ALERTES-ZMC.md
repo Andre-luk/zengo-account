@@ -111,6 +111,25 @@ cahier des charges).
 > tant qu'un moteur dédié (Google/Azure/OpenAI) ou des enregistrements natifs ne
 > sont pas branchés — l'interface d'extension est déjà en place.
 
+### Relecture de l'enregistrement
+
+L'enregistrement (`RecordingUrl` renvoyé par le fournisseur) est relu depuis la
+console via `GET /voice-calls/:id/recording` :
+
+- la route est protégée par le JWT : le navigateur récupère les octets en blob,
+  l'URL du fournisseur ne circule donc jamais côté client ;
+- côté serveur, seuls les hôtes de confiance sont relayés — Twilio, plus les
+  hôtes déclarés dans `TELEPHONY_RECORDING_ALLOWED_HOSTS`. Toute autre URL
+  (ressource interne, métadonnées cloud, protocole non web) est refusée en
+  `403 RECORDING_HOST_NOT_ALLOWED` : pas de relais ouvert.
+
+### Notification SMS du client
+
+Le client est prévenu par SMS **en parallèle de l'appel vocal** (alerte détectée,
+équipe en route, équipe sur place, dossier clos) et peut être notifié d'un
+message libre depuis la console. Le canal, les modèles multilingues et le
+découpage en segments sont décrits dans [`SMS.md`](./SMS.md).
+
 ## 4. Affectation et escalade
 
 ### Affectation (manuelle ou automatique)
@@ -209,7 +228,7 @@ Un contrôle direct hors périmètre renvoie `403`.
 ## 8. Tests
 
 ```bash
-npm run smoke:alerts   # 46 contrôles : cycle de vie, appel IA, escalade, temps réel
+npm run smoke:alerts   # 63 contrôles : cycle de vie, appel IA, escalade, enregistrement, SMS, temps réel
 npm run mqtt:broker    # broker MQTT embarque (aedes)
 MQTT_ENABLED=true MQTT_URL=mqtt://127.0.0.1:1884 npm run start:prod
 npm run smoke:iot      # 19 contrôles : auth, heartbeat, alarme -> alerte, token invalide

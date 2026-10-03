@@ -1,4 +1,4 @@
-import { Inject, Injectable, Logger, NotFoundException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
+import { Inject, Injectable, Logger, NotFoundException, ForbiddenException, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
@@ -15,6 +15,7 @@ import { ClientProfile } from '@database/entities/client-profile.entity';
 import { Alert } from '@database/entities/alert.entity';
 import { VoiceCall } from '@database/entities/voice-call.entity';import { AlertLifecycleService } from '@modules/alerts/alert-lifecycle.service';
 import { interpretSpeechIntent } from '@modules/telephony/dtmf.util';
+import { guessAudioContentType, isProxyableRecordingUrl } from '@modules/telephony/recording.util';
 import { TELEPHONY_PROVIDER, TelephonyProvider } from '@modules/telephony/telephony.provider';
 import { renderVoiceScript } from '@modules/telephony/voice-scripts';
 
@@ -315,6 +316,56 @@ export class AlertVoiceCallService implements OnModuleInit, OnModuleDestroy {
     const voiceCall = await this.voiceCallRepository.findOne({ where: { id: voiceCallId } });
     if (!voiceCall) throw new NotFoundException('Appel introuvable.');
     return voiceCall;
+  }
+
+  /**
+   * Relais authentifie de l'enregistrement de l'appel.
+   *
+   * Twilio ne sert ses enregistrements qu'avec nos identifiants : le
+   * navigateur ne peut donc pas les lire directement, et l'URL ne doit pas
+   * circuler. Le serveur va donc la chercher et renvoie les octets, apres avoir
+   * verifie que l'hôte est de confiance (protection contre le relais ouvert).
+   */
+  async fetchRecording(voiceCallId: string): Promise<{ body: Buffer; contentType: string }> {
+    const voiceCall = await this.findVoiceCallOrFail(voiceCallId);
+
+    if (!voiceCall.recordingUrl) {
+      throw new NotFoundException({
+        message: "Aucun enregistrement disponible pour cet appel.",
+        code: 'RECORDING_UNAVAILABLE',
+      });
+    }
+
+    const allowedHosts = this.configService.get<string[]>('app.telephony.recordingAllowedHosts', []);
+    if (!isProxyableRecordingUrl(voiceCall.recordingUrl, { allowedHosts, providerName: voiceCall.provider })) {
+      this.logger.warn(
+        `Enregistrement de l'appel ${voiceCall.id} non relu : hote non autorise (${voiceCall.recordingUrl.slice(0, 80)}).`,
+      );
+      throw new ForbiddenException({
+        message: "L'enregistrement n'est pas heberge par un service de confiance : relecture refusee.",
+        code: 'RECORDING_HOST_NOT_ALLOWED',
+      });
+    }
+
+    const isTwilio = voiceCall.provider.toUpperCase() === 'TWILIO';
+    const accountSid = this.configService.get<string>('app.telephony.twilio.accountSid') ?? '';
+    const authToken = this.configService.get<string>('app.telephony.twilio.authToken') ?? '';
+
+    const response = await fetch(voiceCall.recordingUrl, {
+      headers: isTwilio
+        ? { Authorization: `Basic ${Buffer.from(`${accountSid}:${authToken}`).toString('base64')}` }
+        : {},
+    });
+
+    if (!response.ok) {
+      throw new NotFoundException({
+        message: `Le fournisseur n'a pas pu servir l'enregistrement (${response.status}).`,
+        code: 'RECORDING_FETCH_FAILED',
+      });
+    }
+
+    const buffer = Buffer.from(await response.arrayBuffer());
+    return { body: buffer, contentType: guessAudioContentType(response.headers.get('content-type')) };
   }
 
   // ---------------------------------------------------------------------------

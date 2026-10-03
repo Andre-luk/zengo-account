@@ -30,6 +30,7 @@ import { Alert } from '@database/entities/alert.entity';
 import { Organization } from '@database/entities/organization.entity';
 import { AlertLifecycleService, ALERT_DETAIL_RELATIONS } from '@modules/alerts/alert-lifecycle.service';
 import { AlertVoiceCallService } from '@modules/alerts/alert-voice-call.service';
+import { AlertSmsService } from '@modules/alerts/alert-sms.service';
 import {
   buildAlertReference,
   computeSeverity,
@@ -95,6 +96,7 @@ export class AlertsService {
     private readonly scopeService: OrganizationScopeService,
     private readonly alertLifecycle: AlertLifecycleService,
     private readonly alertVoiceCall: AlertVoiceCallService,
+    private readonly alertSms: AlertSmsService,
     private readonly configService: ConfigService,
   ) {}
 
@@ -236,6 +238,7 @@ export class AlertsService {
     );
 
     await this.maybeStartVoiceCall(alert, input.autoVoiceCall);
+    await this.maybeNotifyBySms(alert);
 
     return this.alertLifecycle.loadAlertOrFail(alert.id, true);
   }
@@ -654,6 +657,25 @@ export class AlertsService {
     } catch (error) {
       this.logger.error(
         `Appel vocal non declenche pour ${alert.reference} : ${error instanceof Error ? error.message : String(error)}`,
+      );
+    }
+  }
+
+  /**
+   * SMS d'information au client, en parallele de l'appel vocal.
+   *
+   * Le SMS part quel que soit le sort de l'appel : c'est lui qui laisse une
+   * trace ecrite si le client ne decroche pas. Un echec d'envoi ne doit jamais
+   * empecher la creation de l'alerte.
+   */
+  private async maybeNotifyBySms(alert: Alert): Promise<void> {
+    if (!this.configService.get<boolean>('app.sms.enabled', true)) return;
+
+    try {
+      await this.alertSms.notifyAlertRaised(alert);
+    } catch (error) {
+      this.logger.error(
+        `SMS non envoye pour ${alert.reference} : ${error instanceof Error ? error.message : String(error)}`,
       );
     }
   }

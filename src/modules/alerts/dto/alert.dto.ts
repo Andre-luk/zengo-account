@@ -9,6 +9,7 @@ import {
   IsString,
   IsUUID,
   MaxLength,
+  MinLength,
 } from 'class-validator';
 import { ToBoolean } from '@common/decorators/to-boolean.decorator';
 import { PaginationQueryDto } from '@common/dto/pagination.dto';
@@ -202,4 +203,20 @@ export class SimulateCallStatusDto {
   @IsOptional()
   @Type(() => Number)
   duration?: number;
+}
+
+export class SendCustomSmsDto {
+  @ApiProperty({ description: 'Corps du message, envoye tel quel au client.', maxLength: 640 })
+  @IsString()
+  @MinLength(3)
+  @MaxLength(640)
+  body!: string;
+
+  @ApiPropertyOptional({
+    description:
+      "Destinataire lorsque le message ne vise pas le client du dossier (contact d'urgence, tiers).",
+  })
+  @IsOptional()
+  @IsUUID()
+  clientId?: string;
 }

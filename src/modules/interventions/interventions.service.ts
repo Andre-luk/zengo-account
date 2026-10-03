@@ -39,6 +39,7 @@ import { Intervention } from '@database/entities/intervention.entity';
 import { Organization } from '@database/entities/organization.entity';
 import { TeamPosition } from '@database/entities/team-position.entity';
 import { AlertLifecycleService } from '@modules/alerts/alert-lifecycle.service';
+import { AlertSmsService } from '@modules/alerts/alert-sms.service';
 import {
   AbortInterventionDto,
   CreateInterventionDto,
@@ -56,14 +57,24 @@ const INTERVENTION_RELATIONS = {
   report: true,
 };
 
+/** Resultat du rapport, formule pour le client dans le SMS de cloture. */
+const INTERVENTION_OUTCOME_LABELS: Record<InterventionOutcome, string> = {
+  [InterventionOutcome.RESOLVED_ON_SITE]: 'incident traite sur place',
+  [InterventionOutcome.FALSE_ALARM_ON_SITE]: 'fausse alerte confirmee sur place',
+  [InterventionOutcome.NO_ACTION_REQUIRED]: 'aucune action necessaire',
+  [InterventionOutcome.DAMAGE_REPORTED]: 'degats constates et consignes',
+  [InterventionOutcome.HANDOVER_TO_AUTHORITIES]: 'dossier remis aux autorites',
+  [InterventionOutcome.CLIENT_ABSENT]: 'client absent, site controle',
+  [InterventionOutcome.EQUIPMENT_ISSUE]: 'anomalie technique du materiel',
+};
+
 /**
  * Conclusion du rapport -> cloture de l'alerte.
  *
  * Le rapport de terrain fait foi : il porte le compte rendu officiel et, sauf
  * demande contraire, cloture l'alerte avec le classement correspondant.
  */
-const ALERT_CLOSURE_BY_OUTCOME: Record<InterventionOutcome, { status: AlertStatus; resolution: AlertResolution }> = {
-  [InterventionOutcome.RESOLVED_ON_SITE]: {
+const ALERT_CLOSURE_BY_OUTCOME: Record<InterventionOutcome, { status: AlertStatus; resolution: AlertResolution }> = {  [InterventionOutcome.RESOLVED_ON_SITE]: {
     status: AlertStatus.RESOLVED,
     resolution: AlertResolution.HANDLED_BY_TEAM,
   },
@@ -117,6 +128,7 @@ export class InterventionsService {
     @InjectRepository(Organization)
     private readonly organizationRepository: Repository<Organization>,
     private readonly alertLifecycle: AlertLifecycleService,
+    private readonly alertSms: AlertSmsService,
     private readonly fieldTeams: FieldTeamsService,
     private readonly scopeService: OrganizationScopeService,
     private readonly configService: ConfigService,
@@ -182,6 +194,11 @@ export class InterventionsService {
       notes: dto.note ?? null,
     });
 
+    // La relation est renseignee immediatement : les notifications envoyees
+    // juste apres citent le nom de l'equipe sans relire la base.
+    intervention.team = team;
+    intervention.alert = alert;
+
     await this.fieldTeams.markEngaged(team.id);
     await this.linkDispatch(alert.id, team.stationId, actor.id, dto.dispatchId);
     await this.syncAlertOnAssignment(actor, alert);
@@ -209,6 +226,7 @@ export class InterventionsService {
     });
 
     this.publish(intervention, 'intervention.assigned', { teamName: team.name, distanceMeters, etaMinutes });
+    await this.notifyClient(intervention, alert, 'assigned');
 
     this.logger.log(
       `Mission ${intervention.reference} : equipe ${team.name} engagee sur ${alert.reference}${
@@ -275,6 +293,9 @@ export class InterventionsService {
 
     this.alertLifecycle.publish('alert.updated', alert, { interventionId: intervention.id, status: alert.status });
     this.publish(intervention, 'intervention.status_changed', { status: target, note: note ?? null });
+    if (target === InterventionStatus.ON_SITE) {
+      await this.notifyClient(intervention, alert, 'on-site');
+    }
 
     return this.loadOrFail(id);
   }
@@ -398,6 +419,10 @@ export class InterventionsService {
       photos: report.photos.length,
       alertClosed: closeAlert,
     });
+
+    // Le client est informe du resultat : c'est la seule trace ecrite qu'il
+    // conserve apres le passage de l'equipe.
+    await this.notifyClient(intervention, alert, 'closed', dto.outcome);
 
     this.logger.log(
       `Mission ${intervention.reference} cloturee (${dto.outcome})${closeAlert ? ` - alerte ${alert.reference} classee` : ''}.`,
@@ -720,11 +745,43 @@ export class InterventionsService {
   }
 
   /**
+   * Information du client par SMS aux etapes de la mission.
+   *
+   * Une notification qui echoue ne doit jamais faire echouer la mission : le
+   * superviseur voit le message en echec dans le dossier et peut le renvoyer.
+   */
+  private async notifyClient(
+    intervention: Intervention,
+    alert: Alert,
+    step: 'assigned' | 'on-site' | 'closed',
+    outcome?: InterventionOutcome,
+  ): Promise<void> {
+    try {
+      if (step === 'assigned') {
+        await this.alertSms.notifyMissionAssigned(intervention, alert);
+      } else if (step === 'on-site') {
+        await this.alertSms.notifyMissionOnSite(intervention, alert);
+      } else {
+        await this.alertSms.notifyAlertClosed(
+          alert,
+          outcome ? INTERVENTION_OUTCOME_LABELS[outcome] : 'dossier traite',
+          intervention,
+        );
+      }
+    } catch (error) {
+      this.logger.error(
+        `SMS ${step} non envoye pour la mission ${intervention.reference} : ${
+          error instanceof Error ? error.message : String(error)
+        }`,
+      );
+    }
+  }
+
+  /**
    * Point de reference de l'affectation : le lieu de l'alerte, a defaut le siege
    * de l'agence porteuse (les stations affectees sont de toute facon celles de
    * cette agence). Sans aucun repere, l'affectation reste manuelle.
-   */
-  private async resolveDestination(
+   */  private async resolveDestination(
     alert: Alert,
   ): Promise<{ latitude: number; longitude: number } | null> {
     if (isValidCoordinate(alert.latitude, alert.longitude)) {

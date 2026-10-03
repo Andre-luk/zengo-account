@@ -11,11 +11,13 @@ import {
   ParseUUIDPipe,
   Post,
   Req,
+  Res,
+  StreamableFile,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { ApiBearerAuth, ApiExcludeEndpoint, ApiOperation, ApiTags } from '@nestjs/swagger';
 import { Throttle } from '@nestjs/throttler';
-import { Request } from 'express';
+import { Request, Response } from 'express';
 import { Public } from '@common/decorators/public.decorator';
 import { Roles } from '@common/decorators/roles.decorator';
 import { Role } from '@common/enums/role.enum';
@@ -31,6 +33,18 @@ const SIMULATION_ROLES = [
   Role.OPERATOR,
   Role.SUPERVISOR,
   Role.NATIONAL_DIRECTOR,
+] as const;
+
+/** L'enregistrement d'un appel d'alerte est une donnee sensible : encadrement et ZMC. */
+const RECORDING_ROLES = [
+  Role.SUPER_ADMIN,
+  Role.NATIONAL_DIRECTOR,
+  Role.TECHNICAL_DIRECTOR,
+  Role.PLATFORM_MANAGER,
+  Role.REGION_MANAGER,
+  Role.AGENCY_MANAGER,
+  Role.OPERATOR,
+  Role.SUPERVISOR,
 ] as const;
 
 /**
@@ -97,6 +111,22 @@ export class AlertVoiceCallsController {
     });
 
     return this.alertVoiceCall.buildClosingTwiMl(voiceCallId);
+  }
+
+  @ApiBearerAuth()
+  @Get(':voiceCallId/recording')
+  @Roles(...RECORDING_ROLES)
+  @ApiOperation({
+    summary: "Relire l'enregistrement de l'appel (relais authentifie vers le fournisseur).",
+  })
+  async recording(
+    @Param('voiceCallId', new ParseUUIDPipe()) voiceCallId: string,
+    @Res({ passthrough: true }) response: Response,
+  ): Promise<StreamableFile> {
+    const { body, contentType } = await this.alertVoiceCall.fetchRecording(voiceCallId);
+    response.setHeader('Content-Type', contentType);
+    response.setHeader('Cache-Control', 'private, max-age=300');
+    return new StreamableFile(body);
   }
 
   @ApiBearerAuth()
