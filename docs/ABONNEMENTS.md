@@ -86,7 +86,73 @@ Un watchdog tourne **toutes les 10 minutes** :
 Un client qui paie retrouve immédiatement l'accès complet, même si l'expiration
 automatique l'avait restreint entre-temps.
 
-## 5. API
+## 5. Webhooks Mobile Money
+
+Les opérateurs poussent leurs accus sur une route unique :
+
+```
+POST /api/v1/subscriptions/payments/webhooks/:operator      (:operator = mpesa | airtel | orange | illicocash)
+```
+
+Chaque passerelle (`src/modules/subscriptions/providers/mobile-money.provider.ts`)
+normalise la charge utile de son opérateur :
+
+| Opérateur | Champs reconnus |
+|---|---|
+| M-Pesa (Vodacom) | `TransID`, `TransAmount`, `MSISDN`, `BillRefNumber` ; et la réponse d'une demande de paiement (`Body.stkCallback.*`) |
+| Airtel Money | `transaction.id`, `transaction.amount`, `transaction.status.code`, `transaction.msisdn` |
+| Orange Money | `txnid`, `amount`, `status`, `msisdn`, `order_id` |
+| Illicocash | `transactionId`, `amount`, `currency`, `phoneNumber`, `status` |
+
+Le résultat est une notification normalisée : opérateur, identifiant de
+transaction, montant, devise, numéro payeur, référence, succès ou motif d'échec.
+
+### Traitement, dans l'ordre
+
+1. **paiement refusé** → la ligne est enregistrée en `FAILED` avec le motif : la
+   caisse peut justifier le non-encaissement ;
+2. **transaction déjà connue** → réponse `DUPLICATE`, aucune double activation
+   (la référence opérateur est unique en base) ;
+3. **client identifié** (par numéro principal/secondaire, puis par identifiant
+   Zengo ou code d'abonnement cité en référence) → paiement confirmé,
+   abonnement émis, validité étendue, **code envoyé par SMS** ;
+4. **client non identifié** → paiement conservé en `PENDING` avec
+   `needsReconciliation: true` : on n'invente jamais un porteur à partir d'un
+   numéro inconnu.
+
+La durée est déduite du montant reçu (la plus longue que le montant couvre,
+minimum 30 jours) ; un rapprochement manuel permet de choisir la durée exacte.
+
+### Sécurité
+
+- route publique mais **throttlée** (240 requêtes/minute) ;
+- si `MOBILE_MONEY_WEBHOOK_SECRET` est défini, l'en-tête `x-operator-signature`
+  doit porter le HMAC-SHA256 attendu, sinon la notification est rejetée avant
+  tout traitement ;
+- un webhook non authentifié ne peut jamais activer un abonnement seul : au pire
+  il crée une ligne à rapprocher.
+
+## 6. Caisse virtuelle et rapprochement
+
+| Méthode | Route | Rôle |
+|---|---|---|
+| `GET` | `/subscriptions/payments?status=&method=&days=` | journal des encaissements |
+| `GET` | `/subscriptions/payments/reconciliation?days=` | rapprochement de caisse |
+| `POST` | `/subscriptions/payments/:id/reconcile` | rattacher un paiement en attente à un client |
+
+Le rapprochement renvoie :
+
+- `byOperator` — par moyen de paiement : nombre de mouvements, montants USD et
+  CDF ;
+- `confirmed` — totaux des encaissements confirmés ;
+- `pending` — paiements annoncés mais non rattachés, avec la liste détaillée ;
+- `byDay` — évolution quotidienne.
+
+Deux anomalies sont ainsi détectables sans outil externe : un paiement reçu dont
+le porteur est inconnu, et un client qui déclare avoir payé sans que
+l'encaissement apparaisse.
+
+## 7. API
 
 Authentification JWT. Le portefeuille global est réservé à l'encadrement et à
 la caisse ; un client ne voit que ses propres codes.
@@ -138,7 +204,7 @@ nombre de paiements, abonnements émis, clients actifs, clients à échéance
 proche, clients expirés, répartition par moyen de paiement et **paiements
 annoncés mais non confirmés** (premier signal de fraude ou d'erreur de caisse).
 
-## 6. Modèle de données
+## 8. Modèle de données
 
 `Subscription` (`subscriptions`) — un code, une période.
 
@@ -168,7 +234,7 @@ annoncés mais non confirmés** (premier signal de fraude ou d'erreur de caisse)
 La colonne `operatorReference` est **unique** : une même transaction Mobile Money
 ne peut pas être encaissée deux fois.
 
-## 7. Console
+## 9. Console
 
 Écran **Abonnements** (groupe *Gestion*) :
 
@@ -180,7 +246,7 @@ ne peut pas être encaissée deux fois.
   client sélectionné avant validation ;
 - **Activer un code** : saisie tolérante (minuscules, espaces, tirets).
 
-## 8. Configuration
+## 10. Configuration
 
 | Variable | Défaut | Rôle |
 |---|---|---|
@@ -188,28 +254,27 @@ ne peut pas être encaissée deux fois.
 | `BILLING_DEFAULT_MONTHLY_FEE_USD` | `20` | Mensualité de repli |
 | `BILLING_AUTO_EXPIRE` | `true` | Restriction automatique des abonnements échus |
 | `BILLING_REMINDERS` | `true` | Relance SMS des clients à échéance proche |
+| `MOBILE_MONEY_WEBHOOK_SECRET` | *(vide)* | Secret partagé des webhooks opérateurs (HMAC-SHA256) |
 
-## 9. Tests
+## 11. Tests
 
 | Suite | Périmètre | Résultat |
 |---|---|---|
 | `subscription.util.spec.ts` | codes, prix et remises, validité, renouvellement, restriction | 19 tests |
-| `npm run smoke:subscriptions` | encaissement, code, SMS, activation, renouvellement, annulation, sécurité, caisse, expiration | 39 contrôles |
+| `mobile-money.provider.spec.ts` | normalisation des quatre opérateurs, numéros, échecs, charges inexploitables | 12 tests |
+| `npm run smoke:subscriptions` | encaissement, code, SMS, activation, renouvellement, annulation, sécurité, caisse, webhooks, rapprochement, expiration | 51 contrôles |
 
 ```bash
 npm run smoke:subscriptions
 npm run smoke:all          # socle + alertes + interventions + abonnements
 ```
 
-## 10. Suite de l'itération 4
+## 12. Suite de l'itération 4
 
 Reste à livrer pour clore l'itération :
 
-- [ ] webhooks des opérateurs Mobile Money (M-Pesa, Airtel Money, Orange Money,
-      Illicocash) : confirmation automatique des paiements `PENDING`, sans
-      saisie manuelle ;
-- [ ] caisse virtuelle et réconciliation : rapprochement automatique entre les
-      relevés opérateurs et les lignes `payments` ;
-- [ ] tableau de bord finance dédié (par agence, par caissier, par mois) ;
 - [ ] envoi du code depuis l'application client avant encaissement (demande de
-      paiement poussée vers le téléphone du client).
+      paiement poussée vers le téléphone du client) ;
+- [ ] tableau de bord finance dédié (par agence, par caissier, par mois) ;
+- [ ] rapprochement automatique de bout en bout lorsque l'opérateur fournit un
+      relevé périodique (fichier ou API de settlement).

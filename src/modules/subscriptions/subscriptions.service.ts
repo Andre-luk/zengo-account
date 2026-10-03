@@ -38,6 +38,7 @@ import { Subscription } from '@database/entities/subscription.entity';
 import { TariffGroup } from '@database/entities/tariff-group.entity';
 import { AlertSmsService } from '@modules/alerts/alert-sms.service';
 import { OrganizationScopeService } from '@modules/organizations/organizations.service';
+import { PaymentNotification } from '@modules/subscriptions/providers/mobile-money.provider';
 import { buildPaginatedResult, PaginatedResult } from '@common/dto/pagination.dto';
 import {
   ActivateSubscriptionDto,
@@ -103,6 +104,461 @@ export class SubscriptionsService {
     private readonly configService: ConfigService,
     private readonly dataSource: DataSource,
   ) {}
+
+  // ---------------------------------------------------------------------------
+  // Webhooks Mobile Money et reconciliation
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Traite un accuse de paiement Mobile Money.
+   *
+   * Trois cas, dans l'ordre :
+   *  1. l'operateur confirme une demande de paiement deja connue (`PENDING`) →
+   *     le paiement est confirme, l'abonnement emis et le code envoye ;
+   *  2. aucune demande correspondante : le paiement est enregistre en attente et
+   *     `needsReconciliation` vaut `true`, le caissier le rattachera au client ;
+   *  3. l'operateur refuse le mouvement : dans les deux cas la ligne garde la
+   *     trace de l'echec, pour que la caisse puisse justifier le non-encaissement.
+   */
+  async handleMobileMoneyNotification(notification: PaymentNotification): Promise<{
+    outcome: 'CONFIRMED' | 'PENDING' | 'FAILED' | 'DUPLICATE';
+    paymentId: string | null;
+    subscriptionCode: string | null;
+    needsReconciliation: boolean;
+    message: string;
+  }> {
+    if (!notification.success) {
+      const matched = await this.matchClientForNotification(notification);
+      const failed = await this.paymentRepository.save(
+        this.paymentRepository.create({
+          clientId: matched?.id ?? null,
+          method: notification.method,
+          channel: PAYMENT_CHANNEL_BY_METHOD[notification.method],
+          amountUsd: notification.currency === 'USD' ? notification.amount.toFixed(2) : '0.00',
+          amountCdf: notification.currency === 'CDF' ? notification.amount.toFixed(2) : null,
+          payerMsisdn: notification.payerMsisdn,
+          operatorReference: notification.transactionId,
+          status: PaymentStatus.FAILED,
+          failureReason: notification.failureReason?.slice(0, 255) ?? 'paiement refuse',
+          notes: `Notification ${notification.operator} : ${notification.failureReason ?? 'refus'}`,
+          metadata: { notification: notification.raw },
+        }),
+      );
+
+      return {
+        outcome: 'FAILED',
+        paymentId: failed.id,
+        subscriptionCode: null,
+        needsReconciliation: false,
+        message: notification.failureReason ?? 'paiement refuse par l operateur',
+      };
+    }
+
+    const existing = await this.paymentRepository.findOne({
+      where: { operatorReference: notification.transactionId },
+    });
+    if (existing) {
+      return {
+        outcome: 'DUPLICATE',
+        paymentId: existing.id,
+        subscriptionCode: null,
+        needsReconciliation: false,
+        message: 'Cette transaction a deja ete enregistree.',
+      };
+    }
+
+    const client = await this.matchClientForNotification(notification);
+
+    // Sans client identifiable, la ligne attend le rapprochement du caissier :
+    // on n'invente jamais un porteur a partir d'un numero inconnu.
+    if (!client) {
+      const orphan = await this.paymentRepository.save(
+        this.paymentRepository.create({
+          clientId: null,
+          method: notification.method,
+          channel: PAYMENT_CHANNEL_BY_METHOD[notification.method],
+          amountUsd: notification.currency === 'USD' ? notification.amount.toFixed(2) : '0.00',
+          amountCdf: notification.currency === 'CDF' ? notification.amount.toFixed(2) : null,
+          payerMsisdn: notification.payerMsisdn,
+          operatorReference: notification.transactionId,
+          status: PaymentStatus.PENDING,
+          notes: `A rapprocher : aucun client ne correspond a ${notification.payerMsisdn ?? 'numero inconnu'}.`,
+          metadata: { notification: notification.raw, reference: notification.reference },
+        }),
+      );
+
+      this.logger.warn(
+        `Paiement ${notification.operator} ${notification.transactionId} en attente de rapprochement (${notification.amount} ${notification.currency}).`,
+      );
+
+      return {
+        outcome: 'PENDING',
+        paymentId: orphan.id,
+        subscriptionCode: null,
+        needsReconciliation: true,
+        message: 'Compte client non identifie : paiement a rapprocher manuellement.',
+      };
+    }
+
+    return this.settleMobileMoneyPayment(client, notification);
+  }
+
+  /**
+   * Rapproche un paiement Mobile Money en attente a un client, puis encaisse
+   * l'abonnement correspondant. C'est l'action du caissier lorsque le numero
+   * payeur ne permet pas d'identifier le dossier automatiquement.
+   */
+  async reconcilePayment(
+    actor: AuthenticatedUser,
+    paymentId: string,
+    input: { clientId: string; durationDays: SubscriptionDuration; note?: string },
+  ): Promise<IssueResult> {
+    const payment = await this.paymentRepository.findOne({ where: { id: paymentId } });
+    if (!payment) throw new NotFoundException('Paiement introuvable.');
+    if (payment.status === PaymentStatus.CONFIRMED) {
+      throw new ConflictException('Ce paiement est deja encaisse.');
+    }
+    if (payment.status === PaymentStatus.REFUNDED) {
+      throw new BadRequestException('Ce paiement a ete rembourse : il ne peut plus etre encaisse.');
+    }
+
+    const client = await this.loadClientOrFail(input.clientId);
+    await this.assertInScope(actor, client.organizationId);
+
+    const exchangeRate = payment.exchangeRate ? Number(payment.exchangeRate) : this.defaultExchangeRate();
+    const isFirstSubscription = (await this.countSubscriptions(client.id)) === 0;
+    const window = computeValidityWindow(input.durationDays, {
+      paidAt: payment.paidAt ?? new Date(),
+      currentEndsAt: client.subscriptionExpiresAt,
+    });
+
+    const amountUsd = Number(payment.amountUsd) > 0 ? Number(payment.amountUsd) : 0;
+    const amountCdf = payment.amountCdf ? Number(payment.amountCdf) : null;
+
+    const result = await this.dataSource.transaction(async (manager) => {
+      const subscription = manager.create(Subscription, {
+        clientId: client.id,
+        code: await this.generateUniqueCode(manager),
+        durationDays: input.durationDays,
+        status: SubscriptionCodeStatus.ISSUED,
+        startsAt: window.startsAt,
+        endsAt: window.endsAt,
+        priceUsd: (amountUsd > 0 ? amountUsd : this.defaultMonthlyFee()).toFixed(2),
+        priceCdf: amountCdf === null ? null : amountCdf.toFixed(2),
+        exchangeRate: exchangeRate.toFixed(4),
+        discountUsd: '0.00',
+        tariffGroupId: client.tariffGroupId,
+        isFirstSubscription,
+        issuedById: actor.id,
+        issuedByLabel: `${actor.firstName} ${actor.lastName}`.trim(),
+        issuedAt: new Date(),
+        notes: input.note ?? `Rapprochement du paiement ${payment.operatorReference ?? payment.id}`,
+        metadata: { reconciledPaymentId: payment.id, method: payment.method },
+      });
+      const saved = await manager.save(subscription);
+
+      await manager.update(
+        Payment,
+        payment.id,
+        {
+          clientId: client.id,
+          subscriptionId: saved.id,
+          status: PaymentStatus.CONFIRMED,
+          confirmedAt: new Date(),
+          organizationId: client.organizationId,
+          recordedById: actor.id,
+          recordedByLabel: `${actor.firstName} ${actor.lastName}`.trim(),
+          notes: input.note ?? payment.notes,
+        },
+      );
+
+      await manager.update(ClientProfile, client.id, {
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        subscriptionExpiresAt: window.endsAt,
+        status: client.status === ClientStatus.PENDING ? ClientStatus.ACTIVE : client.status,
+      });
+
+      const refreshed = await manager.findOneOrFail(ClientProfile, { where: { id: client.id } });
+      const sms = await this.sendCode(refreshed, saved);
+
+      this.logger.log(
+        `Paiement ${payment.operatorReference ?? payment.id} rapproche de ${refreshed.zengoId ?? refreshed.id} : code ${saved.code}.`,
+      );
+
+      return { subscription: saved, client: refreshed, smsSent: sms.sent, smsError: sms.error };
+    });
+
+    return {
+      subscription: this.toView(result.subscription),
+      payment: (await this.paymentRepository.findOne({ where: { id: payment.id } })) ?? payment,
+      client: result.client,
+      smsSent: result.smsSent,
+      smsError: result.smsError,
+    };
+  }
+
+  /** Journal des encaissements, filtrable (moyen, statut, periode). */
+  async listPayments(
+    actor: AuthenticatedUser,
+    query: { page?: number; limit?: number; status?: PaymentStatus; method?: PaymentMethod; days?: number },
+  ): Promise<PaginatedResult<Payment>> {
+    const page = query.page && query.page > 0 ? query.page : 1;
+    const limit = query.limit && query.limit > 0 ? Math.min(query.limit, 100) : 20;
+
+    const builder = this.paymentRepository
+      .createQueryBuilder('payment')
+      .leftJoinAndSelect('payment.client', 'client')
+      .leftJoinAndSelect('payment.organization', 'organization');
+
+    const scope = await this.scopeService.getAccessibleOrganizationIds(actor);
+    if (scope !== null) {
+      if (scope.length === 0) return buildPaginatedResult<Payment>([], 0, page, limit);
+      builder.andWhere('(payment.organizationId IN (:...scope) OR payment.organizationId IS NULL)', { scope });
+    }
+
+    if (query.status) builder.andWhere('payment.status = :status', { status: query.status });
+    if (query.method) builder.andWhere('payment.method = :method', { method: query.method });
+    if (query.days && query.days > 0) {
+      builder.andWhere('payment.createdAt >= :since', { since: new Date(Date.now() - query.days * 86_400_000) });
+    }
+
+    builder.orderBy('payment.createdAt', 'DESC').skip((page - 1) * limit).take(limit);
+    const [items, total] = await builder.getManyAndCount();
+    return buildPaginatedResult(items, total, page, limit);
+  }
+
+  /**
+   * Rapprochement : totaux par operateur et par jour, face au nombre de
+   * paiements confirmes et en attente. C'est le controle que fait la caisse en
+   * fin de journee avec les releves des operateurs.
+   */
+  async reconciliation(
+    actor: AuthenticatedUser,
+    options: { days?: number } = {},
+  ): Promise<{
+    windowDays: number;
+    byOperator: { method: PaymentMethod; channel: string; count: number; amountUsd: number; amountCdf: number }[];
+    pending: { count: number; amountUsd: number; amountCdf: number; items: Payment[] };
+    confirmed: { count: number; amountUsd: number; amountCdf: number };
+    byDay: { day: string; count: number; amountUsd: number; amountCdf: number }[];
+  }> {
+    const days = options.days && options.days > 0 ? Math.min(options.days, 90) : 30;
+    const since = new Date(Date.now() - days * 86_400_000);
+    const scope = await this.scopeService.getAccessibleOrganizationIds(actor);
+
+    const base = this.paymentRepository.createQueryBuilder('payment').where('payment.createdAt >= :since', { since });
+    if (scope !== null) {
+      if (scope.length === 0) {
+        return emptyReconciliation(days);
+      }
+      base.andWhere('(payment.organizationId IN (:...scope) OR payment.organizationId IS NULL)', { scope });
+    }
+
+    const byOperator = await base
+      .clone()
+      .select('payment.method', 'method')
+      .addSelect('payment.channel', 'channel')
+      .addSelect('COUNT(*)::int', 'count')
+      .addSelect('COALESCE(SUM(payment.amountUsd), 0)::float', 'amount_usd')
+      .addSelect('COALESCE(SUM(payment.amountCdf), 0)::float', 'amount_cdf')
+      .groupBy('payment.method')
+      .addGroupBy('payment.channel')
+      .getRawMany<{ method: PaymentMethod; channel: string; count: number; amount_usd: number; amount_cdf: number }>();
+
+    const [confirmed] = await base
+      .clone()
+      .select('COUNT(*)::int', 'count')
+      .addSelect('COALESCE(SUM(payment.amountUsd), 0)::float', 'amount_usd')
+      .addSelect('COALESCE(SUM(payment.amountCdf), 0)::float', 'amount_cdf')
+      .andWhere('payment.status = :confirmed', { confirmed: PaymentStatus.CONFIRMED })
+      .getRawMany<{ count: number; amount_usd: number; amount_cdf: number }>();
+
+    const pendingRows = await base
+      .clone()
+      .leftJoinAndSelect('payment.client', 'client')
+      .andWhere('payment.status = :pending', { pending: PaymentStatus.PENDING })
+      .orderBy('payment.createdAt', 'DESC')
+      .take(50)
+      .getMany();
+
+    const byDay = await base
+      .clone()
+      .select("TO_CHAR(payment.createdAt, 'YYYY-MM-DD')", 'day')
+      .addSelect('COUNT(*)::int', 'count')
+      .addSelect('COALESCE(SUM(payment.amountUsd), 0)::float', 'amount_usd')
+      .addSelect('COALESCE(SUM(payment.amountCdf), 0)::float', 'amount_cdf')
+      .groupBy("TO_CHAR(payment.createdAt, 'YYYY-MM-DD')")
+      .orderBy('day', 'DESC')
+      .getRawMany<{ day: string; count: number; amount_usd: number; amount_cdf: number }>();
+
+    return {
+      windowDays: days,
+      byOperator: byOperator.map((row) => ({
+        method: row.method,
+        channel: row.channel,
+        count: Number(row.count),
+        amountUsd: round2(Number(row.amount_usd)),
+        amountCdf: round2(Number(row.amount_cdf)),
+      })),
+      pending: {
+        count: pendingRows.length,
+        amountUsd: round2(pendingRows.reduce((sum, row) => sum + Number(row.amountUsd), 0)),
+        amountCdf: round2(pendingRows.reduce((sum, row) => sum + Number(row.amountCdf ?? 0), 0)),
+        items: pendingRows,
+      },
+      confirmed: {
+        count: Number(confirmed?.count ?? 0),
+        amountUsd: round2(Number(confirmed?.amount_usd ?? 0)),
+        amountCdf: round2(Number(confirmed?.amount_cdf ?? 0)),
+      },
+      byDay: byDay.map((row) => ({
+        day: row.day,
+        count: Number(row.count),
+        amountUsd: round2(Number(row.amount_usd)),
+        amountCdf: round2(Number(row.amount_cdf)),
+      })),
+    };
+  }
+
+  /**
+   * Confirmation d'un paiement Mobile Money : le client est reconnu par son
+   * numero, sa reference de contrat, ou le code qu'il a rappele. On cherche
+   * d'abord une demande de paiement en attente pour ce numero ; sinon on
+   * rapproche du porteur du numero principal.
+   */
+  private async settleMobileMoneyPayment(
+    client: ClientProfile,
+    notification: PaymentNotification,
+  ): Promise<{
+    outcome: 'CONFIRMED' | 'PENDING' | 'FAILED' | 'DUPLICATE';
+    paymentId: string | null;
+    subscriptionCode: string | null;
+    needsReconciliation: boolean;
+    message: string;
+  }> {
+    const exchangeRate = this.defaultExchangeRate();
+    const amountUsd =
+      notification.currency === 'USD' ? notification.amount : notification.amount / exchangeRate;
+    const durationDays = this.durationForAmount(amountUsd);
+
+    const tariff = await this.resolveTariff(client);
+    const isFirstSubscription = (await this.countSubscriptions(client.id)) === 0;
+    const window = computeValidityWindow(durationDays, { currentEndsAt: client.subscriptionExpiresAt });
+
+    const result = await this.dataSource.transaction(async (manager) => {
+      const payment = manager.create(Payment, {
+        clientId: client.id,
+        method: notification.method,
+        channel: PAYMENT_CHANNEL_BY_METHOD[notification.method],
+        amountUsd: amountUsd.toFixed(2),
+        amountCdf: notification.currency === 'CDF' ? notification.amount.toFixed(2) : null,
+        exchangeRate: exchangeRate.toFixed(4),
+        payerMsisdn: notification.payerMsisdn,
+        operatorReference: notification.transactionId,
+        status: PaymentStatus.CONFIRMED,
+        organizationId: client.organizationId,
+        paidAt: notification.receivedAt,
+        confirmedAt: new Date(),
+        recordedByLabel: `${notification.operator} (notification automatique)`,
+        notes: notification.reference ? `Reference client : ${notification.reference}` : null,
+        metadata: { notification: notification.raw, tariffGroupId: tariff?.id ?? null },
+      });
+      const savedPayment = await manager.save(payment);
+
+      const subscription = manager.create(Subscription, {
+        clientId: client.id,
+        code: await this.generateUniqueCode(manager),
+        durationDays,
+        status: SubscriptionCodeStatus.ISSUED,
+        startsAt: window.startsAt,
+        endsAt: window.endsAt,
+        priceUsd: amountUsd.toFixed(2),
+        priceCdf:
+          notification.currency === 'CDF'
+            ? notification.amount.toFixed(2)
+            : toCdf(amountUsd, exchangeRate).toFixed(2),
+        exchangeRate: exchangeRate.toFixed(4),
+        discountUsd: '0.00',
+        tariffGroupId: client.tariffGroupId,
+        isFirstSubscription,
+        issuedByLabel: `${notification.operator} (paiement automatique)`,
+        issuedAt: new Date(),
+        metadata: { paymentId: savedPayment.id, durationInferred: true },
+      });
+      const savedSubscription = await manager.save(subscription);
+
+      savedPayment.subscriptionId = savedSubscription.id;
+      await manager.save(savedPayment);
+
+      await manager.update(ClientProfile, client.id, {
+        subscriptionStatus: SubscriptionStatus.ACTIVE,
+        subscriptionExpiresAt: window.endsAt,
+        status: client.status === ClientStatus.PENDING ? ClientStatus.ACTIVE : client.status,
+      });
+
+      const refreshed = await manager.findOneOrFail(ClientProfile, { where: { id: client.id } });
+      const sms = await this.sendCode(refreshed, savedSubscription);
+
+      return { subscription: savedSubscription, payment: savedPayment, client: refreshed, sms };
+    });
+
+    this.logger.log(
+      `Paiement ${notification.operator} ${notification.transactionId} encaisse pour ${result.client.zengoId ?? result.client.id} : ${durationDays} jours.`,
+    );
+
+    return {
+      outcome: 'CONFIRMED',
+      paymentId: result.payment.id,
+      subscriptionCode: result.subscription.code,
+      needsReconciliation: false,
+      message: `Abonnement de ${durationDays} jours active, code ${result.subscription.code}.`,
+    };
+  }
+
+  /** Retrouve le client a l'origine du paiement : numero, puis reference. */
+  private async matchClientForNotification(notification: PaymentNotification): Promise<ClientProfile | null> {
+    if (notification.payerMsisdn) {
+      const byPhone = await this.clientRepository.findOne({
+        where: [{ primaryPhone: notification.payerMsisdn }, { secondaryPhone: notification.payerMsisdn }],
+      });
+      if (byPhone) return byPhone;
+    }
+
+    if (notification.reference) {
+      const zengoId = notification.reference.trim().toUpperCase();
+      const byZengoId = await this.clientRepository.findOne({ where: { zengoId } });
+      if (byZengoId) return byZengoId;
+
+      const byCode = await this.subscriptionRepository.findOne({
+        where: { code: normalizeSubscriptionCode(notification.reference) },
+      });
+      if (byCode) return this.loadClientOrFail(byCode.clientId);
+    }
+
+    return null;
+  }
+
+  /**
+   * Duree deduite du montant recu : le client paie le prix d'une duree du
+   * catalogue (ou davantage). A defaut de correspondance exacte, on retient la
+   * duree la plus longue que le montant couvre, avec un minimum de 30 jours.
+   */
+  private durationForAmount(amountUsd: number): SubscriptionDuration {
+    const durations = [SubscriptionDuration.DAYS_180, SubscriptionDuration.DAYS_90, SubscriptionDuration.DAYS_30].sort(
+      (left, right) => right - left,
+    ) as SubscriptionDuration[];
+
+    const monthlyFee = this.defaultMonthlyFee();
+    for (const duration of durations) {
+      const expected = computeSubscriptionPrice({ monthlyFeeUsd: monthlyFee }, duration).amountUsd;
+      if (amountUsd + 0.01 >= expected) return duration;
+    }
+    return SubscriptionDuration.DAYS_30;
+  }
+
+  private defaultExchangeRate(): number {
+    return this.configService.get<number>('app.billing.exchangeRateUsdToCdf', 2800);
+  }
 
   // ---------------------------------------------------------------------------
   // Emission (encaissement au guichet ou confirmation Mobile Money)
@@ -756,6 +1212,14 @@ const emptyStats = (days: number) => ({
   expired: 0,
   byMethod: [],
   pendingPayments: 0,
+});
+
+const emptyReconciliation = (days: number) => ({
+  windowDays: days,
+  byOperator: [],
+  pending: { count: 0, amountUsd: 0, amountCdf: 0, items: [] },
+  confirmed: { count: 0, amountUsd: 0, amountCdf: 0 },
+  byDay: [],
 });
 
 const round2 = (value: number): number => Math.round(value * 100) / 100;

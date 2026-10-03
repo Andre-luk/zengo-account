@@ -26,12 +26,16 @@ import { User } from '@database/entities/user.entity';
 @Index(['organizationId'])
 @Index(['operatorReference'], { unique: true, where: 'operator_reference IS NOT NULL' })
 export class Payment extends AppBaseEntity {
-  @Column({ name: 'client_id', type: 'uuid' })
-  clientId!: string;
+  /**
+   * Client encaisse. `null` lorsqu'un paiement Mobile Money arrive d'un numero
+   * inconnu : la ligne attend le rapprochement du caissier.
+   */
+  @Column({ name: 'client_id', type: 'uuid', nullable: true })
+  clientId!: string | null;
 
-  @ManyToOne(() => ClientProfile, { onDelete: 'CASCADE' })
+  @ManyToOne(() => ClientProfile, { nullable: true, onDelete: 'CASCADE' })
   @JoinColumn({ name: 'client_id' })
-  client!: ClientProfile;
+  client!: ClientProfile | null;
 
   @Column({ name: 'subscription_id', type: 'uuid', nullable: true })
   subscriptionId!: string | null;

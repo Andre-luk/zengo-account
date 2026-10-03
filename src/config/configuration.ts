@@ -121,6 +121,11 @@ export default registerAs('app', () => ({
     autoExpire: toBool(process.env.BILLING_AUTO_EXPIRE, true),
     /** Relance quotidienne des clients dont l'abonnement arrive a echeance. */
     reminders: toBool(process.env.BILLING_REMINDERS, true),
+    /**
+     * Secret partage avec les operateurs Mobile Money. Lorsqu'il est defini, un
+     * webhook sans signature HMAC valide est rejete avant tout traitement.
+     */
+    mobileMoneyWebhookSecret: process.env.MOBILE_MONEY_WEBHOOK_SECRET ?? '',
   },
 
   devices: {

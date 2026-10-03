@@ -340,7 +340,111 @@ async function main() {
   check('Indicateurs finances refuses au client (403)', clientStats.status === 403, String(clientStats.status));
 
   // ---------------------------------------------------------------------------
-  console.log('\n7. Expiration automatique');
+  console.log('\n7. Webhooks Mobile Money et caisse');
+  // ---------------------------------------------------------------------------
+  const mpesaReference = `MP${Date.now()}`;
+  const mpesaPayment = await api('POST', '/subscriptions/payments/webhooks/mpesa', {
+    body: {
+      TransID: mpesaReference,
+      TransAmount: '57000',
+      MSISDN: clientProfile.primaryPhone,
+      BillRefNumber: clientProfile.zengoId,
+    },
+  });
+  check(
+    'Paiement M-Pesa reconnu par le numero du client et encaisse automatiquement',
+    mpesaPayment.status === 200 &&
+      mpesaPayment.data?.outcome === 'CONFIRMED' &&
+      /^ZG-/.test(mpesaPayment.data?.subscriptionCode ?? ''),
+    `${mpesaPayment.data?.subscriptionCode} — ${mpesaPayment.data?.message}`,
+  );
+
+  const duplicate = await api('POST', '/subscriptions/payments/webhooks/mpesa', {
+    body: { TransID: mpesaReference, TransAmount: '57000', MSISDN: clientProfile.primaryPhone },
+  });
+  check(
+    'Rejeu du meme webhook ignore (idempotence)',
+    duplicate.data?.outcome === 'DUPLICATE',
+    duplicate.data?.message,
+  );
+
+  const orphanPayment = await api('POST', '/subscriptions/payments/webhooks/orange', {
+    body: { txnid: `OM-${Date.now()}`, amount: '22000', msisdn: '0999999999', status: 'SUCCESS' },
+  });
+  check(
+    'Paiement d un numero inconnu mis en attente de rapprochement',
+    orphanPayment.data?.outcome === 'PENDING' && orphanPayment.data?.needsReconciliation === true,
+    orphanPayment.data?.message,
+  );
+
+  const refused = await api('POST', '/subscriptions/payments/webhooks/airtel', {
+    body: {
+      transaction: { id: `AIR-${Date.now()}`, amount: 57000, status: { code: 'TF', message: 'Solde insuffisant' } },
+    },
+  });
+  check(
+    'Paiement refuse par l operateur enregistre comme echec',
+    refused.data?.outcome === 'FAILED',
+    refused.data?.message,
+  );
+
+  const unknownOperator = await api('POST', '/subscriptions/payments/webhooks/wave', {
+    body: { amount: 10 },
+  });
+  check(
+    'Operateur inconnu refuse sans erreur serveur',
+    unknownOperator.status === 200 && unknownOperator.data?.accepted === false,
+    unknownOperator.data?.reason,
+  );
+
+  const unparsable = await api('POST', '/subscriptions/payments/webhooks/mpesa', { body: { foo: 'bar' } });
+  check('Charge utile inexploitable refusee', unparsable.data?.reason === 'unparsable_payload');
+
+  const reconciled = await api('POST', `/subscriptions/payments/${orphanPayment.data.paymentId}/reconcile`, {
+    token: operator.token,
+    body: { clientId, durationDays: 30, note: 'Rapprochement du releve Orange' },
+  });
+  check(
+    'Paiement en attente rattache a un client par le caissier',
+    reconciled.status === 201 && /^ZG-/.test(reconciled.data?.subscription?.code ?? ''),
+    reconciled.data?.subscription?.code,
+  );
+
+  const doubleReconcile = await api('POST', `/subscriptions/payments/${orphanPayment.data.paymentId}/reconcile`, {
+    token: operator.token,
+    body: { clientId, durationDays: 30 },
+  });
+  check('Double rapprochement refuse (409)', doubleReconcile.status === 409, String(doubleReconcile.status));
+
+  const payments = await api('GET', '/subscriptions/payments?limit=10', { token: operator.token });
+  check(
+    'Journal des encaissements consultable',
+    payments.status === 200 && (payments.data?.items?.length ?? 0) > 0,
+    `${payments.data?.total ?? 0} mouvement(s)`,
+  );
+
+  const reconciliation = await api('GET', '/subscriptions/payments/reconciliation?days=30', {
+    token: operator.token,
+  });
+  check(
+    'Rapprochement de caisse par operateur',
+    reconciliation.status === 200 &&
+      (reconciliation.data?.byOperator ?? []).some((entry) => entry.method === 'MPESA'),
+    (reconciliation.data?.byOperator ?? []).map((entry) => `${entry.method}:${entry.amountCdf} FC`).join(', '),
+  );
+  check(
+    'Totaux confirmes et volumes par jour',
+    typeof reconciliation.data?.confirmed?.amountUsd === 'number' && Array.isArray(reconciliation.data?.byDay),
+    `${reconciliation.data?.confirmed?.count} encaissement(s) confirme(s) sur ${reconciliation.data?.windowDays} jours`,
+  );
+
+  const clientReconciliation = await api('GET', '/subscriptions/payments/reconciliation', {
+    token: client.token,
+  });
+  check('Rapprochement de caisse ferme aux clients (403)', clientReconciliation.status === 403);
+
+  // ---------------------------------------------------------------------------
+  console.log('\n8. Expiration automatique');
   // ---------------------------------------------------------------------------
   const forced = await api('POST', '/subscriptions/maintenance/expire-due', { token: director.token });
   check(

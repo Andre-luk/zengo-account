@@ -60,16 +60,16 @@ Detail SMS : [`SMS.md`](./SMS.md). Detail analyse de risque : [`RISQUES.md`](./R
 
 Détail : [`INTERVENTIONS.md`](./INTERVENTIONS.md).
 
-## Itération 4 — Abonnements & paiements 🚧 (en cours)
+## Itération 4 — Abonnements & paiements ✅ (livrée)
 
 - [x] Codes d'abonnement uniques liés au numéro du client (30/90/180 jours)
 - [x] Envoi du code par SMS à chaque paiement
 - [x] Expiration automatique et restriction d'accès
 - [x] Activation du code depuis l'application et/ou l'écran central
-- [x] Caisse : journal des encaissements (USD/CDF, taux du jour, moyen de paiement, agent)
-- [x] Indicateurs de caisse (encaissé, clients actifs, échéances proches, paiements non confirmés)
-- [ ] Webhooks des opérateurs Mobile Money (M-Pesa, Airtel Money, Orange Money, Illicocash)
-- [ ] Caisse virtuelle, réconciliation, tableau de bord finance dédié
+- [x] Webhooks des opérateurs Mobile Money (M-Pesa, Airtel Money, Orange Money, Illicocash)
+- [x] Caisse virtuelle et rapprochement (journal des encaissements, paiements à rattacher)
+- [x] Indicateurs de caisse (encaissé USD/CDF, clients actifs, échéances proches)
+- [ ] Tableau de bord finance dédié (par agence, par caissier, par mois)
 
 Détail : [`ABONNEMENTS.md`](./ABONNEMENTS.md).
 

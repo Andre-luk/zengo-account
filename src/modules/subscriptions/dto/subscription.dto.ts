@@ -17,6 +17,7 @@ import {
 import { Currency } from '@common/enums/client.enum';
 import {
   PaymentMethod,
+  PaymentStatus,
   SubscriptionCodeStatus,
   SubscriptionDuration,
 } from '@common/enums/subscription.enum';
@@ -106,6 +107,43 @@ export class ActivateSubscriptionDto {
   @IsOptional()
   @IsUUID()
   clientId?: string;
+}
+
+export class QueryPaymentsDto extends PaginationQueryDto {
+  @ApiPropertyOptional({ enum: PaymentStatus })
+  @IsOptional()
+  @IsEnum(PaymentStatus)
+  status?: PaymentStatus;
+
+  @ApiPropertyOptional({ enum: PaymentMethod })
+  @IsOptional()
+  @IsEnum(PaymentMethod)
+  method?: PaymentMethod;
+
+  @ApiPropertyOptional({ description: "Profondeur de l'historique, en jours.", default: 30 })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(365)
+  days?: number;
+}
+
+export class ReconcilePaymentDto {
+  @ApiProperty({ description: 'Client auquel rattacher le paiement recu.' })
+  @IsUUID()
+  clientId!: string;
+
+  @ApiProperty({ enum: SubscriptionDuration, description: 'Duree d abonnement couverte par le montant recu.' })
+  @IsEnum(SubscriptionDuration)
+  @Type(() => Number)
+  durationDays!: SubscriptionDuration;
+
+  @ApiPropertyOptional()
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
 }
 
 export class QuerySubscriptionsDto extends PaginationQueryDto {
