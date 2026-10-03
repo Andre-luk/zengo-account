@@ -1,0 +1,43 @@
+# Environnement de developpement Zengo Account.
+#
+#   docker compose up -d
+#
+# Puis, dans .env : DB_HOST=127.0.0.1 / DB_PORT=5432 / DB_USERNAME=zengo
+#                   DB_PASSWORD=zengo / DB_NAME=zengo_account
+#
+# Alternative sans Docker : `npm run db:pg:start` (PostgreSQL embarque, port 55432).
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: zengo-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: zengo
+      POSTGRES_PASSWORD: zengo
+      POSTGRES_DB: zengo_account
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - '5432:5432'
+    volumes:
+      - zengo-pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U zengo -d zengo_account']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Broker MQTT local pour tester le protocole SafAlert (MQTT_ENABLED=true,
+  # MQTT_URL=mqtt://localhost:1883).
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: zengo-mosquitto
+    restart: unless-stopped
+    ports:
+      - '1883:1883'
+    volumes:
+      - ./docker/mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    profiles: ['iot']
+
+volumes:
+  zengo-pgdata:

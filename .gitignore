@@ -1,0 +1,30 @@
+# Dependencies
+/node_modules
+
+# Build
+/dist
+/coverage
+
+# Console web (React / Vite)
+/web/node_modules
+/web/dist
+/web/.vite
+
+# Env
+.env
+.env.local
+*.local
+
+# Local embedded PostgreSQL data (dev only)
+/.pgdata
+
+# Logs
+*.log
+npm-debug.log*
+logs/
+
+# IDE / OS
+.idea
+.vscode/*
+!.vscode/extensions.json
+.DS_Store

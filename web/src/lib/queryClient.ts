@@ -1,0 +1,43 @@
+import { QueryClient } from '@tanstack/react-query';
+import { ApiError } from '@/lib/api';
+
+export const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 15_000,
+      refetchOnWindowFocus: false,
+      retry: (failureCount, error) => {
+        // Ne pas réessayer sur les erreurs de permissions ou de validation.
+        if (error instanceof ApiError && error.status < 500) return false;
+        return failureCount < 2;
+      },
+    },
+    mutations: {
+      retry: false,
+    },
+  },
+});
+
+/** Cles de cache centralisees (evite les chaines dispersees). */
+export const queryKeys = {
+  me: ['me'] as const,
+  organizations: (params?: unknown) => ['organizations', params ?? {}] as const,
+  organizationTree: ['organizations', 'tree'] as const,
+  clients: (params?: unknown) => ['clients', params ?? {}] as const,
+  client: (id: string) => ['clients', id] as const,
+  clientPricing: (id: string) => ['clients', id, 'pricing'] as const,
+  devices: (params?: unknown) => ['devices', params ?? {}] as const,
+  device: (id: string) => ['devices', id] as const,
+  deviceSubDevices: (id: string) => ['devices', id, 'sub-devices'] as const,
+  alerts: (params?: unknown) => ['alerts', params ?? {}] as const,
+  alert: (id: string) => ['alerts', id] as const,
+  alertTimeline: (id: string) => ['alerts', id, 'timeline'] as const,
+  alertVoiceCalls: (id: string) => ['alerts', id, 'voice-calls'] as const,
+  alertStats: (params?: unknown) => ['alerts', 'stats', params ?? {}] as const,
+  alertStations: (organizationId: string) => ['alerts', 'stations', organizationId] as const,
+  tariffs: (params?: unknown) => ['tariffs', params ?? {}] as const,
+  pricePreview: (tariffGroupId: string, sosButtonCount: number) =>
+    ['tariffs', 'price-preview', tariffGroupId, sosButtonCount] as const,
+  users: (params?: unknown) => ['users', params ?? {}] as const,
+  auditLogs: (params?: unknown) => ['audit-logs', params ?? {}] as const,
+};
