@@ -41,9 +41,9 @@ Reste à traiter dans l'itération 3 (ou en fin d'itération 2) :
 - [x] Application web « console ZMC » (React + Vite) consommant l'API et le canal temps réel
 - [x] Notification SMS du client en parallele de l'appel vocal
 - [x] Enregistrement audio des appels IA exploite dans l'interface (lecture integree)
-- [ ] Analyse predictive : regroupement des incidents par zone et zones a risque
+- [x] Analyse predictive : regroupement des incidents par zone et zones a risque
 
-Detail SMS : [`SMS.md`](./SMS.md).
+Detail SMS : [`SMS.md`](./SMS.md). Detail analyse de risque : [`RISQUES.md`](./RISQUES.md).
 
 ## Itération 3 — Interventions terrain ✅ (livrée)
 
@@ -91,7 +91,6 @@ Détail : [`INTERVENTIONS.md`](./INTERVENTIONS.md).
 - [ ] Application mobile client et agents (React Native + Expo) avec suivi GPS
 - [ ] Guidage vocal des agents (TTS/STT) et assistant IA embarqué
 - [ ] Multi-langue de l'interface (FR, EN, SW, LN, LU, KG)
-- [ ] Analyse prédictive communautaire (zones à risque) et notifications de prévention
-- [ ] Système embarqué véhicule d'intervention (GPS, TTS/STT, 4G/5G)
+- [ ] Analyse prédictive communautaire (zones à risque) et notifications de prévention  _(l'analyse par zone est livree, voir [`RISQUES.md`](./RISQUES.md) ; restent les notifications de prevention)_- [ ] Système embarqué véhicule d'intervention (GPS, TTS/STT, 4G/5G)
 - [ ] Migrations TypeORM versionnées, CI/CD, observabilité (logs, métriques, traces)
 - [ ] Authentification MQTT par certificat/broker managé et rotation des secrets

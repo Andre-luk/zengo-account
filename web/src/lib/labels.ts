@@ -156,6 +156,19 @@ export const SMS_DIRECTION: Record<string, Described> = {
   INBOUND: described('Entrant', 'info'),
 };
 
+export const RISK_LEVEL: Record<string, Described> = {
+  CALME: described('Calme', 'success'),
+  MODERE: described('Risque modéré', 'warning'),
+  ELEVE: described('Risque élevé', 'critical'),
+  CRITIQUE: described('Risque critique', 'critical'),
+};
+
+export const RISK_TREND: Record<string, Described> = {
+  EN_HAUSSE: described('en hausse', 'critical'),
+  STABLE: described('stable', 'neutral'),
+  EN_BAISSE: described('en baisse', 'success'),
+};
+
 // --- Clients -----------------------------------------------------------------
 
 export const CLIENT_STATUS: Record<string, Described> = {

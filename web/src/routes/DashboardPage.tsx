@@ -23,6 +23,7 @@ import {
   YAxis,
 } from 'recharts';
 import { Badge } from '@/components/ui/Badge';
+import { RiskZonesCard } from '@/components/dashboard/RiskZonesCard';
 import { Card, CardBody, CardHeader, DataRow, StatCard } from '@/components/ui/Card';
 import { EmptyState, ErrorState, Skeleton, TableSkeleton } from '@/components/ui/Feedback';
 import { THead, TH, TBody, TR, TD, TableWrap } from '@/components/ui/Table';
@@ -385,14 +386,16 @@ export const DashboardPage = () => {
         </Card>
       </div>
 
+      {/* Analyse predictive : zones a risque du perimetre */}
+      <RiskZonesCard days={90} />
+
       {/* Derniers sous-appareils en défaut remontée */}
       <Card>
         <CardHeader
           title="Santé du parc"
           description="Centrales SafAlert Solar G1 rattachées à votre périmètre"
           icon={<Wifi className="h-4 w-4" />}
-        />
-        <CardBody className="grid gap-3 sm:grid-cols-3">
+        />        <CardBody className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-xl border border-slate-200 p-3 dark:border-slate-800">
             <p className="text-xs text-slate-500 dark:text-slate-400">Centrales actives</p>
             <p className="mt-1 text-xl font-semibold text-emerald-600 dark:text-emerald-400">

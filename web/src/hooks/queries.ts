@@ -22,6 +22,8 @@ import type {
   VoiceCall,
   SmsMessage,
   SmsStats,
+  RiskSummary,
+  RiskZone,
 } from '@/types/api';
 
 export type QueryParams = Record<string, string | number | boolean | undefined>;
@@ -81,6 +83,21 @@ export const useSmsStats = () =>
     queryKey: queryKeys.smsStats(),
     queryFn: () => api.get<SmsStats>('/sms/stats'),
     staleTime: 60_000,
+  });
+
+/** Analyse predictive : zones a risque du perimetre. */
+export const useRiskZones = (params: { days?: number; limit?: number; minAlerts?: number } = {}) =>
+  useQuery({
+    queryKey: queryKeys.riskZones(params),
+    queryFn: () => api.get<{ zones: RiskZone[] }>('/alerts/risk/zones', params),
+    staleTime: 300_000,
+  });
+
+export const useRiskSummary = (params: { days?: number; limit?: number } = {}) =>
+  useQuery({
+    queryKey: queryKeys.riskSummary(params),
+    queryFn: () => api.get<RiskSummary>('/alerts/risk/summary', params),
+    staleTime: 300_000,
   });
 
 export const useAlertStations = (organizationId: string | null | undefined) =>

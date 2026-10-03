@@ -506,7 +506,71 @@ async function main() {
   check('Historique SMS protege par authentification (401)', anonymousSmsAccess.status === 401);
 
   // ---------------------------------------------------------------------------
-  console.log('\n9. Indicateurs et diffusion temps reel');
+  console.log('\n9. Analyse predictive des zones a risque');
+  // ---------------------------------------------------------------------------
+  const riskZones = await api('GET', '/alerts/risk/zones?days=365&limit=5&minAlerts=2', {
+    token: operator.token,
+  });
+  check(
+    'Zones a risque calculees sur le perimetre',
+    riskZones.status === 200 && Array.isArray(riskZones.data?.zones),
+    `${riskZones.data?.zones?.length ?? 0} zone(s), maille ${riskZones.data?.precisionDegrees}°`,
+  );
+
+  const topZone = riskZones.data?.zones?.[0];
+  check(
+    'Chaque zone porte sa maille, son volume et son niveau',
+    Boolean(topZone?.cell) &&
+      topZone.alerts >= 2 &&
+      ['CALME', 'MODERE', 'ELEVE', 'CRITIQUE'].includes(topZone.level),
+    `${topZone?.cell} · ${topZone?.alerts} alerte(s) · ${topZone?.level} (score ${topZone?.score})`,
+  );
+  check(
+    'Le score reste dans les bornes du modele',
+    (riskZones.data?.zones ?? []).every((zone) => zone.score >= 0 && zone.score <= 100),
+  );
+  check(
+    'Les zones sont classees de la plus risquee a la moins risquee',
+    (riskZones.data?.zones ?? []).every(
+      (zone, index, zones) => index === 0 || zones[index - 1].score >= zone.score,
+    ),
+  );
+  check(
+    'Le seuil de volume ecarte les evenements isoles',
+    (riskZones.data?.zones ?? []).every((zone) => zone.alerts >= (riskZones.data?.minAlerts ?? 2)),
+  );
+
+  const riskSummary = await api('GET', '/alerts/risk/summary?days=365&limit=5', { token: operator.token });
+  check(
+    'Synthese du risque disponible (volumes, villes, clients repetes)',
+    riskSummary.status === 200 &&
+      typeof riskSummary.data?.total === 'number' &&
+      Array.isArray(riskSummary.data?.byCity) &&
+      Array.isArray(riskSummary.data?.repeatClients),
+    `${riskSummary.data?.total} alerte(s), ${riskSummary.data?.confirmationRate}% confirmees, ${riskSummary.data?.byCity?.length} ville(s)`,
+  );
+  check(
+    'Seuils du modele exposes pour la console',
+    (riskSummary.data?.thresholds ?? []).some((threshold) => threshold.level === 'CRITIQUE'),
+  );
+  check(
+    'Clients a declenchements repetes identifies',
+    (riskSummary.data?.repeatClients ?? []).every((entry) => entry.alerts >= 3),
+    `${riskSummary.data?.repeatClients?.length ?? 0} client(s)`,
+  );
+
+  const riskCities = await api('GET', '/alerts/risk/cities', { token: operator.token });
+  check(
+    'Villes du perimetre listees pour les filtres',
+    riskCities.status === 200 && (riskCities.data?.items?.length ?? 0) > 0,
+    (riskCities.data?.items ?? []).join(', '),
+  );
+
+  const anonymousRisk = await api('GET', '/alerts/risk/zones', {});
+  check('Analyse de risque protegee par authentification (401)', anonymousRisk.status === 401);
+
+  // ---------------------------------------------------------------------------
+  console.log('\n10. Indicateurs et diffusion temps reel');
   // ---------------------------------------------------------------------------
   const stats = await api('GET', '/alerts/stats', { token: operator.token });
   check('Statistiques disponibles', stats.status === 200 && typeof stats.data.open === 'number', `${stats.data.open} ouverte(s)`);

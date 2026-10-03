@@ -130,6 +130,36 @@ export interface SmsStats {
   segments: number;
 }
 
+export type RiskLevel = 'CALME' | 'MODERE' | 'ELEVE' | 'CRITIQUE';
+export type RiskTrend = 'EN_HAUSSE' | 'STABLE' | 'EN_BAISSE';
+
+export interface RiskZone {
+  cell: string;
+  latitude: number;
+  longitude: number;
+  alerts: number;
+  confirmed: number;
+  byType: { type: AlertType; count: number }[];
+  score: number;
+  level: RiskLevel;
+  city: string | null;
+  recentAlerts: number;
+  trend: RiskTrend;
+  lastAlertAt: string;
+}
+
+export interface RiskSummary {
+  windowDays: number;
+  total: number;
+  confirmed: number;
+  confirmationRate: number | null;
+  byLevel: Record<string, number>;
+  topZones: RiskZone[];
+  byCity: { city: string; alerts: number }[];
+  repeatClients: { clientId: string; alerts: number; lastAlertAt: string; types: AlertType[] }[];
+  thresholds: { level: RiskLevel; min: number }[];
+}
+
 export type Role =
   | 'SUPER_ADMIN'
   | 'NATIONAL_DIRECTOR'
