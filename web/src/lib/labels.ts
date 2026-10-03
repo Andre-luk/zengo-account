@@ -169,6 +169,35 @@ export const RISK_TREND: Record<string, Described> = {
   EN_BAISSE: described('en baisse', 'success'),
 };
 
+export const SUBSCRIPTION_CODE_STATUS: Record<string, Described> = {
+  ISSUED: described('Emis', 'info'),
+  ACTIVATED: described('Active', 'success'),
+  EXPIRED: described('Perime', 'neutral'),
+  CANCELLED: described('Annule', 'danger'),
+};
+
+export const PAYMENT_METHOD: Record<string, Described> = {
+  MPESA: described('M-Pesa', 'brand'),
+  AIRTEL_MONEY: described('Airtel Money', 'brand'),
+  ORANGE_MONEY: described('Orange Money', 'brand'),
+  ILLICOCASH: described('Illicocash', 'brand'),
+  CASH_AGENCY: described('Especes (agence)', 'success'),
+  BANK_TRANSFER: described('Virement bancaire', 'neutral'),
+};
+
+export const PAYMENT_STATUS: Record<string, Described> = {
+  PENDING: described('En attente', 'warning'),
+  CONFIRMED: described('Confirme', 'success'),
+  FAILED: described('Echoue', 'danger'),
+  REFUNDED: described('Rembourse', 'neutral'),
+};
+
+export const SUBSCRIPTION_DURATION: Record<string, Described> = {
+  '30': described('30 jours', 'info'),
+  '90': described('90 jours', 'brand'),
+  '180': described('180 jours', 'success'),
+};
+
 // --- Clients -----------------------------------------------------------------
 
 export const CLIENT_STATUS: Record<string, Described> = {

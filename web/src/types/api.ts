@@ -160,6 +160,67 @@ export interface RiskSummary {
   thresholds: { level: RiskLevel; min: number }[];
 }
 
+export type SubscriptionDuration = 30 | 90 | 180;
+export type SubscriptionCodeStatus = 'ISSUED' | 'ACTIVATED' | 'EXPIRED' | 'CANCELLED';
+export type PaymentMethod =
+  | 'MPESA'
+  | 'AIRTEL_MONEY'
+  | 'ORANGE_MONEY'
+  | 'ILLICOCASH'
+  | 'CASH_AGENCY'
+  | 'BANK_TRANSFER';
+export type PaymentChannel = 'MOBILE_MONEY' | 'CASH' | 'TRANSFER';
+export type PaymentStatus = 'PENDING' | 'CONFIRMED' | 'FAILED' | 'REFUNDED';
+
+export interface Subscription {
+  id: string;
+  createdAt: string;
+  clientId: string;
+  code: string;
+  durationDays: SubscriptionDuration;
+  status: SubscriptionCodeStatus;
+  effectiveStatus: SubscriptionStatus;
+  startsAt: string;
+  endsAt: string;
+  daysRemaining: number;
+  validity: string;
+  priceUsd: string;
+  priceCdf: string | null;
+  currency: 'USD' | 'CDF';
+  discountUsd: string;
+  isFirstSubscription: boolean;
+  activatedAt: string | null;
+  issuedAt: string;
+  issuedByLabel: string | null;
+  notes: string | null;
+  client?: { id: string; zengoId: string; fullName: string; primaryPhone: string };
+}
+
+export interface ClientSubscriptionState {
+  clientId: string;
+  zengoId: string | null;
+  status: SubscriptionStatus;
+  effectiveStatus: SubscriptionStatus;
+  expiresAt: string | null;
+  daysRemaining: number;
+  validity: string;
+  restricted: boolean;
+  history: Subscription[];
+}
+
+export interface SubscriptionStats {
+  windowDays: number;
+  revenueUsd: number;
+  revenueCdf: number;
+  payments: number;
+  newSubscriptions: number;
+  activeClients: number;
+  expiringSoon: number;
+  expired: number;
+  byMethod: { method: PaymentMethod; count: number; amountUsd: number }[];
+  pendingPayments: number;
+}
+
 export type Role =
   | 'SUPER_ADMIN'
   | 'NATIONAL_DIRECTOR'

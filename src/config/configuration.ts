@@ -112,6 +112,17 @@ export default registerAs('app', () => ({
     notifyOnClosure: toBool(process.env.SMS_NOTIFY_ON_CLOSURE, true),
   },
 
+  billing: {
+    /** Taux USD -> CDF par defaut si le groupe tarifaire n'en porte pas. */
+    exchangeRateUsdToCdf: toInt(process.env.BILLING_EXCHANGE_RATE_USD_CDF, 2800),
+    /** Mensualite de repli lorsqu'un client n'a pas de groupe tarifaire. */
+    defaultMonthlyFeeUsd: toInt(process.env.BILLING_DEFAULT_MONTHLY_FEE_USD, 20),
+    /** Restreint automatiquement l'acces des abonnements echus. */
+    autoExpire: toBool(process.env.BILLING_AUTO_EXPIRE, true),
+    /** Relance quotidienne des clients dont l'abonnement arrive a echeance. */
+    reminders: toBool(process.env.BILLING_REMINDERS, true),
+  },
+
   devices: {
     /** Delai sans heartbeat avant de marquer un dispositif hors ligne. */
     offlineAfterSeconds: toInt(process.env.DEVICE_OFFLINE_AFTER_SECONDS, 300),

@@ -32,6 +32,14 @@ export interface SmsContext {
   emergencyPhone?: string;
   /** Corps libre d'un message redige depuis la console (modele `CUSTOM`). */
   body?: string;
+  /** Duree de l'abonnement souscrit, en jours. */
+  durationDays?: number | string;
+  /** Code d'abonnement transmis au client. */
+  code?: string;
+  /** Date de fin de validite, deja formatee. */
+  endsAt?: string;
+  /** Jours restants avant echeance. */
+  daysRemaining?: number | string;
 }
 
 /** Texte par situation et par langue, avec les variables entre accolades. */
@@ -93,6 +101,34 @@ export const SMS_TEMPLATES: Record<SmsTemplate, Record<Language, string>> = {
     [Language.LINGALA]: 'Zengo : dossier {reference} ekangami. Bilembo : {outcome}. Matondi.',
     [Language.CHILUBA]: 'Zengo: dilongolongo {reference} dipangidibue. Mvualo: {outcome}. Tusakidila.',
     [Language.KIKONGO]: 'Zengo: diambu {reference} me kangamaka. Mvutu: {outcome}. Matondo.',
+  },
+  [SmsTemplate.SUBSCRIPTION_ACTIVATED]: {
+    [Language.FRENCH]:
+      'Zengo : abonnement de {durationDays} jours active. Votre code : {code}. Il est valable jusqu au {endsAt}. Service client : {emergencyPhone}.',
+    [Language.ENGLISH]:
+      'Zengo: your {durationDays}-day subscription is active. Code: {code}. Valid until {endsAt}. Support: {emergencyPhone}.',
+    [Language.SWAHILI]:
+      'Zengo: usajili wa siku {durationDays} umewashwa. Msimbo: {code}. Unatumika hadi {endsAt}. Huduma: {emergencyPhone}.',
+    [Language.LINGALA]:
+      'Zengo : abonnement ya mikolo {durationDays} efungwami. Code na yo : {code}. Ezali kosala tii {endsAt}. Lisalisi : {emergencyPhone}.',
+    [Language.CHILUBA]:
+      'Zengo: abone mua mifuku {durationDays} wakumbulue. Msimbo webe: {code}. Ukadila mbaka {endsAt}. Lusadisu: {emergencyPhone}.',
+    [Language.KIKONGO]:
+      'Zengo: abone ya bilumbu {durationDays} me kangamaka. Kode na nge: {code}. Yo ke sadila tii {endsAt}. Lusadisu: {emergencyPhone}.',
+  },
+  [SmsTemplate.SUBSCRIPTION_EXPIRING]: {
+    [Language.FRENCH]:
+      'Zengo : votre abonnement expire le {endsAt} ({daysRemaining} jour(s)). Renouvelez pour garder la surveillance active. Service client : {emergencyPhone}.',
+    [Language.ENGLISH]:
+      'Zengo: your subscription expires on {endsAt} ({daysRemaining} day(s)). Renew to keep monitoring active. Support: {emergencyPhone}.',
+    [Language.SWAHILI]:
+      'Zengo: usajili wako unaisha {endsAt} (siku {daysRemaining}). Fanya upya ili ufuatiliaji uendelee. Huduma: {emergencyPhone}.',
+    [Language.LINGALA]:
+      'Zengo : abonnement na yo esili {endsAt} (mikolo {daysRemaining}). Yangela yo ete bokengi ekoba. Lisalisi : {emergencyPhone}.',
+    [Language.CHILUBA]:
+      'Zengo: abone yebe ushila {endsAt} (mifuku {daysRemaining}). Vundulula bika kulama kushale. Lusadisu: {emergencyPhone}.',
+    [Language.KIKONGO]:
+      'Zengo: abone na nge me manaka {endsAt} (bilumbu {daysRemaining}). Vukisa mpi kukengila kubikala. Lusadisu: {emergencyPhone}.',
   },
   [SmsTemplate.CUSTOM]: {
     [Language.FRENCH]: '{body}',

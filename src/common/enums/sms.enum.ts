@@ -51,6 +51,10 @@ export enum SmsTemplate {
   MISSION_ON_SITE = 'MISSION_ON_SITE',
   /** Dossier clos : le client est informe du resultat. */
   ALERT_CLOSED = 'ALERT_CLOSED',
+  /** Paiement encaisse : le code d'abonnement est transmis au client. */
+  SUBSCRIPTION_ACTIVATED = 'SUBSCRIPTION_ACTIVATED',
+  /** L'abonnement arrive a echeance : relance du client. */
+  SUBSCRIPTION_EXPIRING = 'SUBSCRIPTION_EXPIRING',
   /** Message libre redige depuis la console. */
   CUSTOM = 'CUSTOM',
 }

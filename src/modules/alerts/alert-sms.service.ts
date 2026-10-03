@@ -140,6 +140,45 @@ export class AlertSmsService {
   // ---------------------------------------------------------------------------
 
   /**
+   * Message adresse a un client hors dossier d'alerte (abonnement, information
+   * commerciale). Le message reste rattache au client, ce qui permet de
+   * retrouver tout ce que la plateforme lui a ecrit.
+   */
+  async sendToClient(
+    clientId: string,
+    template: SmsTemplate,
+    context: SmsContext = {},
+  ): Promise<SmsMessage> {
+    if (!this.configService.get<boolean>('app.sms.enabled', true)) {
+      throw new Error('Le canal SMS est desactive (SMS_ENABLED=false).');
+    }
+
+    const client = await this.clientRepository.findOne({ where: { id: clientId } });
+    if (!client) throw new NotFoundException('Client introuvable.');
+    if (!client.primaryPhone) {
+      throw new NotFoundException('Ce client ne porte aucun numero de telephone exploitable.');
+    }
+
+    const language = client.preferredLanguage ?? Language.FRENCH;
+    const body = renderSmsTemplate(template, language, {
+      emergencyPhone: this.configService.get<string>('app.sms.emergencyPhone') ?? '',
+      ...context,
+    });
+
+    return this.deliver({
+      alertId: null,
+      clientId: client.id,
+      interventionId: null,
+      template,
+      language,
+      toNumber: client.primaryPhone,
+      body,
+      context,
+      attemptNumber: 1,
+    });
+  }
+
+  /**
    * Rend le modele, enregistre le message en base *avant* l'appel au
    * fournisseur (un envoi qui echoue doit rester visible dans l'historique),
    * puis journalise le resultat dans la chronologie du dossier.

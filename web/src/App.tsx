@@ -14,6 +14,7 @@ import { DevicesPage } from '@/routes/DevicesPage';
 import { ForbiddenPage, NotFoundPage } from '@/routes/FallbackPages';
 import { LoginPage } from '@/routes/LoginPage';
 import { MissionsPage } from '@/routes/MissionsPage';
+import { SubscriptionsPage } from '@/routes/SubscriptionsPage';
 import { OrganizationsPage } from '@/routes/OrganizationsPage';
 import { TariffsPage } from '@/routes/TariffsPage';
 import { UsersPage } from '@/routes/UsersPage';
@@ -76,6 +77,27 @@ export const App = () => {
         <Route path="/alertes/:alertId" element={<AlertsPage />} />
         <Route path="/missions" element={<MissionsPage />} />
         <Route path="/missions/:missionId" element={<MissionsPage />} />
+        <Route
+          path="/abonnements"
+          element={
+            <RequireRole
+              roles={[
+                'SUPER_ADMIN',
+                'NATIONAL_DIRECTOR',
+                'TECHNICAL_DIRECTOR',
+                'PLATFORM_MANAGER',
+                'DAF',
+                'ACCOUNTANT',
+                'REGION_MANAGER',
+                'AGENCY_MANAGER',
+                'OPERATOR',
+                'SUPERVISOR',
+              ]}
+            >
+              <SubscriptionsPage />
+            </RequireRole>
+          }
+        />
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/clients/:clientId" element={<ClientDetailPage />} />
         <Route path="/dispositifs" element={<DevicesPage />} />

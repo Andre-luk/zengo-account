@@ -24,6 +24,9 @@ import type {
   SmsStats,
   RiskSummary,
   RiskZone,
+  Subscription,
+  SubscriptionStats,
+  ClientSubscriptionState,
 } from '@/types/api';
 
 export type QueryParams = Record<string, string | number | boolean | undefined>;
@@ -98,6 +101,29 @@ export const useRiskSummary = (params: { days?: number; limit?: number } = {}) =
     queryKey: queryKeys.riskSummary(params),
     queryFn: () => api.get<RiskSummary>('/alerts/risk/summary', params),
     staleTime: 300_000,
+  });
+
+/** Abonnements et encaissements (iteration 4). */
+export const useSubscriptions = (
+  params: { clientId?: string; status?: string; expiringSoon?: boolean; page?: number; limit?: number } = {},
+) =>
+  useQuery({
+    queryKey: queryKeys.subscriptions(params),
+    queryFn: () => api.get<Paginated<Subscription>>('/subscriptions', params),
+  });
+
+export const useSubscriptionStats = (days = 30) =>
+  useQuery({
+    queryKey: queryKeys.subscriptionStats(days),
+    queryFn: () => api.get<SubscriptionStats>('/subscriptions/stats', { days }),
+    staleTime: 60_000,
+  });
+
+export const useClientSubscription = (clientId: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.clientSubscription(clientId ?? ''),
+    queryFn: () => api.get<ClientSubscriptionState>(`/subscriptions/clients/${clientId}`),
+    enabled: Boolean(clientId),
   });
 
 export const useAlertStations = (organizationId: string | null | undefined) =>
