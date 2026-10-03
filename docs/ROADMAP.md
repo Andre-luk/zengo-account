@@ -38,18 +38,25 @@ point par point le cahier des charges `ZENGO_ACCOUNT_plateforme...pdf`.
 Détail : [`ALERTES-ZMC.md`](./ALERTES-ZMC.md).
 
 Reste à traiter dans l'itération 3 (ou en fin d'itération 2) :
-- [ ] Application web « console ZMC » (React + Vite) consommant l'API et le canal temps réel
+- [x] Application web « console ZMC » (React + Vite) consommant l'API et le canal temps réel
 - [ ] Notification SMS du client en parallèle de l'appel vocal
 - [ ] Enregistrement audio des appels IA exploité dans l'interface (lecture intégrée)
 - [ ] Analyse prédictive : regroupement des incidents par zone et zones à risque
 
-## Itération 3 — Interventions terrain
+## Itération 3 — Interventions terrain ✅ (livrée)
 
-- [ ] Entités `Intervention` et `InterventionReport` (photos, commentaires)
-- [ ] Affectation manuelle et automatique de l'équipe la plus proche (GPS)
-- [ ] Statuts de mission : assignée / en route / sur place / terminée
-- [ ] Application mobile agents (React Native + Expo) avec suivi GPS
-- [ ] Guidage vocal (TTS/STT) et assistant IA
+- [x] Entités `FieldTeam`, `Intervention`, `InterventionReport`, `TeamPosition`
+- [x] Affectation manuelle et automatique de l'équipe la plus proche (haversine + spécialité)
+- [x] Statuts de mission : assignée / en route / sur place / terminée / abandonnée
+- [x] Rapport de fin d'intervention (conclusion, photos, dégâts, signature)
+- [x] Clôture automatique de l'alerte selon la conclusion du rapport
+- [x] Suivi GPS : remontée de position, trace du trajet, distance et ETA restantes
+- [x] Watchdog de pilotage (départ non confirmé, trajet anormalement long, équipe silencieuse)
+- [x] Diffusion temps réel des missions (`intervention.*`, `team.*`)
+- [x] Indicateurs : délai moyen d'arrivée, durée moyenne, taux de réalisation
+- [x] Console web : écran « Missions » (file d'attente, affectation, carte de suivi, rapport)
+
+Détail : [`INTERVENTIONS.md`](./INTERVENTIONS.md).
 
 ## Itération 4 — Abonnements & paiements
 
@@ -78,8 +85,9 @@ Reste à traiter dans l'itération 3 (ou en fin d'itération 2) :
 
 ## Itération 7 — Applications et industrialisation
 
-- [ ] Application web admin / ZMC (React + Vite + TypeScript)
-- [ ] Application mobile client et agents (React Native + Expo)
+- [x] Application web admin / ZMC (React + Vite + TypeScript)
+- [ ] Application mobile client et agents (React Native + Expo) avec suivi GPS
+- [ ] Guidage vocal des agents (TTS/STT) et assistant IA embarqué
 - [ ] Multi-langue de l'interface (FR, EN, SW, LN, LU, KG)
 - [ ] Analyse prédictive communautaire (zones à risque) et notifications de prévention
 - [ ] Système embarqué véhicule d'intervention (GPS, TTS/STT, 4G/5G)

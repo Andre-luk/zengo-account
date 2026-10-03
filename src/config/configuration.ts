@@ -89,4 +89,17 @@ export default registerAs('app', () => ({
     offlineAfterSeconds: toInt(process.env.DEVICE_OFFLINE_AFTER_SECONDS, 300),
     presenceIntervalSeconds: toInt(process.env.DEVICE_PRESENCE_INTERVAL_SECONDS, 60),
   },
+
+  interventions: {
+    /** Frequence du watchdog de suivi des missions. */
+    watchdogIntervalSeconds: toInt(process.env.INTERVENTION_WATCHDOG_INTERVAL_SECONDS, 60),
+    /** Delai maximal entre l'affectation et le depart de l'equipe. */
+    departureWarnMinutes: toInt(process.env.INTERVENTION_DEPARTURE_WARN_MINUTES, 5),
+    /** Delai maximal de trajet avant relance du superviseur. */
+    arrivalWarnMinutes: toInt(process.env.INTERVENTION_ARRIVAL_WARN_MINUTES, 45),
+    /** Age maximal d'une position pour la considerer exploitable. */
+    positionMaxAgeMinutes: toInt(process.env.INTERVENTION_POSITION_MAX_AGE_MINUTES, 60),
+    /** Vitesse moyenne retenue pour l'estimation d'arrivee (km/h). */
+    averageSpeedKmh: toInt(process.env.INTERVENTION_AVERAGE_SPEED_KMH, 28),
+  },
 }));

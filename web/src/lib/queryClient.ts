@@ -38,6 +38,12 @@ export const queryKeys = {
   tariffs: (params?: unknown) => ['tariffs', params ?? {}] as const,
   pricePreview: (tariffGroupId: string, sosButtonCount: number) =>
     ['tariffs', 'price-preview', tariffGroupId, sosButtonCount] as const,
+  interventions: (params?: unknown) => ['interventions', params ?? {}] as const,
+  intervention: (id: string) => ['interventions', id] as const,
+  interventionTrack: (id: string) => ['interventions', id, 'track'] as const,
+  interventionStats: (params?: unknown) => ['interventions', 'stats', params ?? {}] as const,
+  interventionsByAlert: (alertId: string) => ['interventions', 'by-alert', alertId] as const,
+  fieldTeams: (params?: unknown) => ['field-teams', params ?? {}] as const,
   users: (params?: unknown) => ['users', params ?? {}] as const,
   auditLogs: (params?: unknown) => ['audit-logs', params ?? {}] as const,
 };

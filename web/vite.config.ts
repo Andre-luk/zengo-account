@@ -15,6 +15,9 @@ export default defineConfig({
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     },
+    // Les sources TypeScript priment sur d'eventuels .js emis a cote par un
+    // `tsc` mal configure : sans cela, Vite bundle du code obsolete.
+    extensions: ['.ts', '.tsx', '.mjs', '.js', '.jsx', '.mts', '.json'],
   },
   server: {
     port: 5173,

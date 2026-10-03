@@ -76,6 +76,46 @@ export const DISPATCH_STATUS: Record<string, Described> = {
   COMPLETED: described('Terminée', 'success'),
 };
 
+// --- Interventions terrain ---------------------------------------------------
+
+export const INTERVENTION_STATUS: Record<string, Described> = {
+  ASSIGNED: described('Équipe engagée', 'brand'),
+  EN_ROUTE: described('En route', 'info'),
+  ON_SITE: described('Sur place', 'warning'),
+  COMPLETED: described('Mission terminée', 'success'),
+  ABORTED: described('Mission abandonnée', 'neutral'),
+};
+
+export const FIELD_TEAM_STATUS: Record<string, Described> = {
+  AVAILABLE: described('Disponible', 'success'),
+  ENGAGED: described('Engagée', 'warning'),
+  UNAVAILABLE: described('Hors service', 'neutral'),
+};
+
+export const INTERVENTION_OUTCOME: Record<string, Described> = {
+  RESOLVED_ON_SITE: described('Situation maîtrisée sur place', 'success'),
+  FALSE_ALARM_ON_SITE: described('Faux positif confirmé sur place', 'neutral'),
+  NO_ACTION_REQUIRED: described('Aucune action nécessaire', 'neutral'),
+  DAMAGE_REPORTED: described('Dégâts constatés', 'warning'),
+  HANDOVER_TO_AUTHORITIES: described('Transmis aux autorités', 'info'),
+  CLIENT_ABSENT: described('Personne sur place', 'warning'),
+  EQUIPMENT_ISSUE: described('Défaillance du kit', 'danger'),
+};
+
+export const INTERVENTION_ABORT_REASON: Record<string, Described> = {
+  FALSE_ALARM: described('Faux positif', 'neutral'),
+  CLIENT_CANCELLED: described('Annulation par le client', 'info'),
+  NO_TEAM_AVAILABLE: described('Aucune équipe disponible', 'warning'),
+  DUPLICATE: described('Doublon', 'neutral'),
+  OTHER: described('Autre motif', 'neutral'),
+};
+
+export const TEAM_POSITION_SOURCE: Record<string, string> = {
+  APP: 'Application agent',
+  GPS_TRACKER: 'Boîtier GPS',
+  MANUAL: 'Saisie ZMC',
+};
+
 export const VOICE_CALL_STATUS: Record<string, Described> = {
   QUEUED: described('En file', 'neutral'),
   RINGING: described('Sonnerie', 'info'),

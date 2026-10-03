@@ -4,10 +4,14 @@ export * from '@database/entities/alert.entity';
 export * from '@database/entities/audit-log.entity';
 export * from '@database/entities/client-profile.entity';
 export * from '@database/entities/device.entity';
+export * from '@database/entities/field-team.entity';
+export * from '@database/entities/intervention-report.entity';
+export * from '@database/entities/intervention.entity';
 export * from '@database/entities/organization.entity';
 export * from '@database/entities/refresh-token.entity';
 export * from '@database/entities/sub-device.entity';
 export * from '@database/entities/tariff-group.entity';
+export * from '@database/entities/team-position.entity';
 export * from '@database/entities/user-organization.entity';
 export * from '@database/entities/user.entity';
 export * from '@database/entities/voice-call.entity';
@@ -18,10 +22,14 @@ import { Alert } from '@database/entities/alert.entity';
 import { AuditLog } from '@database/entities/audit-log.entity';
 import { ClientProfile } from '@database/entities/client-profile.entity';
 import { Device } from '@database/entities/device.entity';
+import { FieldTeam } from '@database/entities/field-team.entity';
+import { InterventionReport } from '@database/entities/intervention-report.entity';
+import { Intervention } from '@database/entities/intervention.entity';
 import { Organization } from '@database/entities/organization.entity';
 import { RefreshToken } from '@database/entities/refresh-token.entity';
 import { SubDevice } from '@database/entities/sub-device.entity';
 import { TariffGroup } from '@database/entities/tariff-group.entity';
+import { TeamPosition } from '@database/entities/team-position.entity';
 import { User } from '@database/entities/user.entity';
 import { UserOrganization } from '@database/entities/user-organization.entity';
 import { VoiceCall } from '@database/entities/voice-call.entity';
@@ -40,5 +48,9 @@ export const ENTITIES = [
   AlertEvent,
   AlertDispatch,
   VoiceCall,
+  FieldTeam,
+  Intervention,
+  InterventionReport,
+  TeamPosition,
   AuditLog,
 ];

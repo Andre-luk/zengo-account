@@ -53,6 +53,13 @@ export const formatDuration = (seconds: number | null | undefined): string => {
   return `${hours} h ${String(minutes % 60).padStart(2, '0')}`;
 };
 
+/** Distance en mètres -> « 850 m » ou « 12,4 km ». */
+export const formatDistance = (meters: number | null | undefined): string => {
+  if (meters === null || meters === undefined) return '—';
+  if (meters < 1000) return `${Math.round(meters)} m`;
+  return `${new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 1 }).format(meters / 1000)} km`;
+};
+
 const usdFormatter = new Intl.NumberFormat('fr-FR', {
   style: 'currency',
   currency: 'USD',

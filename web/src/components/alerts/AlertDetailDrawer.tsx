@@ -12,6 +12,7 @@ import {
   Phone,
   PhoneCall,
   Radio,
+  Route,
   Send,
   ShieldAlert,
   Siren,
@@ -27,10 +28,10 @@ import { EmptyState, ErrorState, InlineEmpty, Skeleton } from '@/components/ui/F
 import { Field, Select, Textarea } from '@/components/ui/Field';
 import { Drawer, Modal } from '@/components/ui/Modal';
 import { Tabs } from '@/components/ui/Tabs';
-import { useAlert, useAlertStations, useAlertTimeline, useAlertVoiceCalls } from '@/hooks/queries';
+import { useAlert, useAlertStations, useAlertTimeline, useAlertVoiceCalls, useInterventionsByAlert } from '@/hooks/queries';
 import { api } from '@/lib/api';
 import { cn } from '@/lib/cn';
-import { formatCoordinates, formatDateTime, formatDuration, formatRelative, formatTime } from '@/lib/format';
+import { formatCoordinates, formatDateTime, formatDistance, formatDuration, formatRelative, formatTime } from '@/lib/format';
 import {
   ALERT_EVENT,
   ALERT_RESOLUTION,
@@ -41,6 +42,7 @@ import {
   ARM_MODE,
   DEVICE_STATUS,
   DISPATCH_STATUS,
+  INTERVENTION_STATUS,
   LANGUAGE,
   SUB_DEVICE_CODE,
   SUBSCRIPTION_STATUS,
@@ -101,6 +103,7 @@ export const AlertDetailDrawer = ({ alertId, onClose }: { alertId: string | null
   const alertQuery = useAlert(alertId ?? undefined);
   const timelineQuery = useAlertTimeline(alertId ?? undefined);
   const callsQuery = useAlertVoiceCalls(alertId ?? undefined);
+  const missionsQuery = useInterventionsByAlert(alertId ?? undefined);
   const alert = alertQuery.data;
 
   const stationsQuery = useAlertStations(dispatchOpen ? alert?.organizationId : null);
@@ -280,6 +283,58 @@ export const AlertDetailDrawer = ({ alertId, onClose }: { alertId: string | null
             <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
               {tab === 'dossier' ? (
                 <div className="space-y-4">
+                  {/* Missions engagees (iteration 3) */}
+                  <Card>
+                    <CardHeader
+                      title="Missions engagées"
+                      description="Équipes terrain en charge de cette alerte"
+                      icon={<Route className="h-4 w-4" />}
+                      actions={
+                        <Link
+                          to={`/missions?search=${encodeURIComponent(alert.reference)}`}
+                          className="text-xs font-semibold text-brand-600 hover:underline dark:text-brand-400"
+                        >
+                          Suivi des missions
+                        </Link>
+                      }
+                    />
+                    {missionsQuery.isLoading ? (
+                      <div className="p-4">
+                        <Skeleton className="h-12 w-full" />
+                      </div>
+                    ) : (missionsQuery.data?.length ?? 0) === 0 ? (
+                      <InlineEmpty>
+                        Aucune équipe engagée. Utilisez « Engager les secours » puis l'écran Missions pour désigner
+                        une équipe.
+                      </InlineEmpty>
+                    ) : (
+                      <CardBody className="space-y-2 pt-3">
+                        {missionsQuery.data?.map((mission) => (
+                          <Link
+                            key={mission.id}
+                            to={`/missions/${mission.id}`}
+                            className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-slate-200 px-3 py-2 transition-colors hover:bg-slate-50 dark:border-slate-800 dark:hover:bg-slate-800/50"
+                          >
+                            <div className="min-w-0">
+                              <p className="truncate text-sm font-medium text-slate-800 dark:text-slate-100">
+                                {mission.team?.name ?? 'Équipe'}{' '}
+                                <span className="font-mono text-xs text-slate-400">{mission.reference}</span>
+                              </p>
+                              <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
+                                {mission.distanceMeters !== null ? `${formatDistance(mission.distanceMeters)} · ` : ''}
+                                engagée {formatRelative(mission.assignedAt)}
+                                {mission.report ? ' · rapport déposé' : ''}
+                              </p>
+                            </div>
+                            <Badge tone={describe(INTERVENTION_STATUS, mission.status).tone} dot={!mission.completedAt}>
+                              {describe(INTERVENTION_STATUS, mission.status).label}
+                            </Badge>
+                          </Link>
+                        ))}
+                      </CardBody>
+                    )}
+                  </Card>
+
                   {/* Affectations */}
                   <Card>
                     <CardHeader

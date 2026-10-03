@@ -6,6 +6,7 @@ import {
   LifeBuoy,
   ScrollText,
   ShieldCheck,
+  Siren,
   Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -36,6 +37,13 @@ export const NAV_ITEMS: NavItem[] = [
     icon: BellRing,
     group: 'supervision',
     description: "File d'attente du Zengo Monitoring Center",
+  },
+  {
+    to: '/missions',
+    label: 'Missions',
+    icon: Siren,
+    group: 'supervision',
+    description: 'Equipes engagees, suivi GPS et rapports',
   },
   {
     to: '/clients',
@@ -129,6 +137,7 @@ export const NAV_GROUPS: Array<{ id: NavItem['group']; label: string }> = [
 export const PAGE_TITLES: Record<string, { title: string; subtitle?: string }> = {
   '/tableau-de-bord': { title: 'Tableau de bord', subtitle: 'Supervision temps réel du parc SafAlert' },
   '/alertes': { title: 'Alertes', subtitle: 'Zengo Monitoring Center' },
+  '/missions': { title: 'Missions', subtitle: 'Equipes terrain, suivi GPS et rapports' },
   '/clients': { title: 'Comptes clients', subtitle: 'Fiches Zengo, equipements et abonnements' },
   '/dispositifs': { title: 'Parc SafAlert', subtitle: 'Centrales et sous-appareils' },
   '/tarifs': { title: 'Tarification', subtitle: 'Packs, boutons SOS et taux de change' },

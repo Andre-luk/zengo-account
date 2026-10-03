@@ -51,6 +51,24 @@ export type AlertEventType =
   | 'RESOLVED'
   | 'CANCELLED';
 export type DispatchStatus = 'PENDING' | 'NOTIFIED' | 'ACKNOWLEDGED' | 'DECLINED' | 'ARRIVED' | 'COMPLETED';
+
+export type InterventionStatus = 'ASSIGNED' | 'EN_ROUTE' | 'ON_SITE' | 'COMPLETED' | 'ABORTED';
+export type FieldTeamStatus = 'AVAILABLE' | 'ENGAGED' | 'UNAVAILABLE';
+export type InterventionOutcome =
+  | 'RESOLVED_ON_SITE'
+  | 'FALSE_ALARM_ON_SITE'
+  | 'NO_ACTION_REQUIRED'
+  | 'DAMAGE_REPORTED'
+  | 'HANDOVER_TO_AUTHORITIES'
+  | 'CLIENT_ABSENT'
+  | 'EQUIPMENT_ISSUE';
+export type InterventionAbortReason =
+  | 'FALSE_ALARM'
+  | 'CLIENT_CANCELLED'
+  | 'NO_TEAM_AVAILABLE'
+  | 'DUPLICATE'
+  | 'OTHER';
+export type TeamPositionSource = 'APP' | 'GPS_TRACKER' | 'MANUAL';
 export type VoiceCallStatus =
   | 'QUEUED'
   | 'RINGING'
@@ -354,6 +372,109 @@ export interface AlertStats {
   averageResolutionSeconds: number | null;
 }
 
+export interface FieldTeam {
+  id: string;
+  name: string;
+  code: string | null;
+  stationId: string;
+  station?: Organization;
+  speciality: StationType;
+  status: FieldTeamStatus;
+  leaderName: string | null;
+  leaderPhone: string | null;
+  membersCount: number;
+  vehiclePlate: string | null;
+  currentLatitude: number | null;
+  currentLongitude: number | null;
+  lastPositionAt: string | null;
+  isActive: boolean;
+  notes: string | null;
+  createdAt: string;
+}
+
+export interface InterventionReport {
+  id: string;
+  interventionId: string;
+  outcome: InterventionOutcome;
+  summary: string;
+  actionsTaken: string | null;
+  damages: string | null;
+  peopleAssisted: number;
+  photos: string[];
+  signatureName: string | null;
+  signedAt: string | null;
+  durationSeconds: number | null;
+  createdById: string | null;
+  createdByLabel: string | null;
+  clientNotified: boolean;
+  createdAt: string;
+}
+
+export interface Intervention {
+  id: string;
+  reference: string;
+  alertId: string;
+  alert?: Alert;
+  dispatchId: string | null;
+  teamId: string;
+  team?: FieldTeam;
+  stationId: string;
+  station?: Organization;
+  status: InterventionStatus;
+  destinationLabel: string | null;
+  city: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  distanceMeters: number | null;
+  etaMinutes: number | null;
+  assignedAt: string;
+  assignedById: string | null;
+  assignedByLabel: string | null;
+  autoAssigned: boolean;
+  enRouteAt: string | null;
+  onSiteAt: string | null;
+  completedAt: string | null;
+  abortedAt: string | null;
+  abortReason: InterventionAbortReason | null;
+  notes: string | null;
+  report?: InterventionReport | null;
+}
+
+export interface TeamPosition {
+  id: string;
+  teamId: string;
+  interventionId: string | null;
+  latitude: number;
+  longitude: number;
+  accuracyMeters: number | null;
+  speedKmh: number | null;
+  headingDegrees: number | null;
+  source: TeamPositionSource;
+  recordedAt: string;
+}
+
+export interface InterventionTrack {
+  interventionId: string;
+  reference: string;
+  status: InterventionStatus;
+  destination: { latitude: number; longitude: number } | null;
+  teamPosition: { latitude: number; longitude: number } | null;
+  remainingMeters: number | null;
+  remainingEtaMinutes: number | null;
+  positions: TeamPosition[];
+}
+
+export interface InterventionStats {
+  total: number;
+  open: number;
+  byStatus: Array<{ status: InterventionStatus; count: number }>;
+  last24h: number;
+  averageResponseSeconds: number | null;
+  averageDurationSeconds: number | null;
+  completionRate: number | null;
+  delayed: number;
+}
+
 export interface AuditLog {
   id: string;
   actorUserId: string | null;
@@ -379,13 +500,19 @@ export interface LoginResponse {
 
 export interface RealtimeEvent {
   type: string;
-  alertId: string;
-  reference: string;
-  alertType: AlertType;
-  severity: AlertSeverity;
-  status: AlertStatus;
-  source: AlertSource;
-  clientId: string | null;
+  alertId: string | null;
+  alertReference?: string | null;
+  interventionId?: string | null;
+  interventionReference?: string | null;
+  teamId?: string | null;
+  teamName?: string | null;
+  stationId?: string | null;
+  reference?: string;
+  alertType?: AlertType;
+  severity?: AlertSeverity;
+  status?: AlertStatus | InterventionStatus | null;
+  source?: AlertSource;
+  clientId?: string | null;
   organizationIds: string[];
   occurredAt: string;
   payload?: Record<string, unknown>;

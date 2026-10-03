@@ -19,6 +19,16 @@ const ALERT_EVENTS = [
   'voice_call.updated',
 ] as const;
 
+const INTERVENTION_EVENTS = [
+  'intervention.assigned',
+  'intervention.status_changed',
+  'intervention.completed',
+  'intervention.aborted',
+  'intervention.delayed',
+  'team.status_changed',
+  'team.position_updated',
+] as const;
+
 /**
  * Canal temps réel de la console.
  *
@@ -81,8 +91,33 @@ export const RealtimeProvider = ({ children }: { children: ReactNode }) => {
 
     ALERT_EVENTS.forEach((name) => socket.on(name, handleEvent));
 
+    const handleMission = (event: RealtimeEvent) => {
+      recordEvent(event);
+      emitRealtime(event);
+      void queryClient.invalidateQueries({ queryKey: ['interventions'] });
+      if (event.type === 'intervention.delayed') {
+        pushToast({
+          tone: 'warning',
+          title: 'Mission en retard',
+          description: `${event.interventionReference ?? 'Mission'} — ${
+            event.payload?.reason === 'ARRIVAL_LATE' ? 'arrivée anormalement longue' : 'départ non confirmé'
+          }.`,
+        });
+      }
+      if (event.type === 'intervention.assigned') {
+        pushToast({
+          tone: 'brand',
+          title: 'Équipe engagée',
+          description: `${event.teamName ?? 'Équipe'} → ${event.alertReference ?? 'alerte'}`,
+        });
+      }
+    };
+
+    INTERVENTION_EVENTS.forEach((name) => socket.on(name, handleMission));
+
     return () => {
       ALERT_EVENTS.forEach((name) => socket.off(name, handleEvent));
+      INTERVENTION_EVENTS.forEach((name) => socket.off(name, handleMission));
       socket.close();
       setConnected(false);
     };

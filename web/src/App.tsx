@@ -13,6 +13,7 @@ import { DeviceDetailPage } from '@/routes/DeviceDetailPage';
 import { DevicesPage } from '@/routes/DevicesPage';
 import { ForbiddenPage, NotFoundPage } from '@/routes/FallbackPages';
 import { LoginPage } from '@/routes/LoginPage';
+import { MissionsPage } from '@/routes/MissionsPage';
 import { OrganizationsPage } from '@/routes/OrganizationsPage';
 import { TariffsPage } from '@/routes/TariffsPage';
 import { UsersPage } from '@/routes/UsersPage';
@@ -73,6 +74,8 @@ export const App = () => {
         <Route path="/tableau-de-bord" element={<DashboardPage />} />
         <Route path="/alertes" element={<AlertsPage />} />
         <Route path="/alertes/:alertId" element={<AlertsPage />} />
+        <Route path="/missions" element={<MissionsPage />} />
+        <Route path="/missions/:missionId" element={<MissionsPage />} />
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/clients/:clientId" element={<ClientDetailPage />} />
         <Route path="/dispositifs" element={<DevicesPage />} />

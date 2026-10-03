@@ -362,18 +362,21 @@ export const DashboardPage = () => {
             ) : (
               <ol className="space-y-3">
                 {recentEvents.slice(0, 8).map((event, index) => (
-                  <li key={`${event.alertId}-${index}`} className="flex gap-3">
+                  <li key={`${event.alertId ?? event.interventionId}-${index}`} className="flex gap-3">
                     <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-brand-500 pulse-ring" />
                     <div className="min-w-0 flex-1">
                       <p className="truncate text-xs font-semibold text-slate-800 dark:text-slate-100">
-                        {event.type.replace('alert.', '').replace('_', ' ')} — {event.reference}
+                        {event.type.replace(/^(alert|intervention|team)\./, '').replace(/_/g, ' ')} —{' '}
+                        {event.reference ?? event.interventionReference ?? event.teamName ?? ''}
                       </p>
                       <p className="truncate text-[11px] text-slate-500 dark:text-slate-400">
-                        {describe(ALERT_TYPE, event.alertType).label} · {describe(ALERT_SEVERITY, event.severity).label} ·{' '}
-                        {formatRelative(event.occurredAt)}
+                        {describe(ALERT_TYPE, event.alertType).label} ·{' '}
+                        {describe(ALERT_SEVERITY, event.severity).label} · {formatRelative(event.occurredAt)}
                       </p>
                     </div>
-                    <Badge tone={SEVERITY_CARD_TONE[event.severity]}>{describe(ALERT_STATUS, event.status).label}</Badge>
+                    <Badge tone={event.severity ? SEVERITY_CARD_TONE[event.severity] : 'neutral'}>
+                      {event.status ? describe(ALERT_STATUS, event.status).label : event.type.split('.')[0]}
+                    </Badge>
                   </li>
                 ))}
               </ol>

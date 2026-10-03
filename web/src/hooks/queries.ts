@@ -9,6 +9,10 @@ import type {
   ClientProfile,
   CurrentUser,
   Device,
+  FieldTeam,
+  Intervention,
+  InterventionStats,
+  InterventionTrack,
   Organization,
   Paginated,
   PriceBreakdown,
@@ -139,4 +143,47 @@ export const useAuditLogs = (params?: QueryParams) =>
   useQuery({
     queryKey: queryKeys.auditLogs(params),
     queryFn: () => api.get<Paginated<AuditLog>>('/audit-logs', buildQuery(params)),
+  });
+
+// --- Interventions terrain ----------------------------------------------------
+
+export const useInterventions = (params?: QueryParams) =>
+  useQuery({
+    queryKey: queryKeys.interventions(params),
+    queryFn: () => api.get<Paginated<Intervention>>('/interventions', buildQuery(params)),
+  });
+
+export const useIntervention = (id: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.intervention(id ?? ''),
+    queryFn: () => api.get<Intervention>(`/interventions/${id}`),
+    enabled: Boolean(id),
+  });
+
+export const useInterventionTrack = (id: string | undefined, enabled = true) =>
+  useQuery({
+    queryKey: queryKeys.interventionTrack(id ?? ''),
+    queryFn: () => api.get<InterventionTrack>(`/interventions/${id}/track`),
+    enabled: Boolean(id) && enabled,
+    refetchInterval: 30_000,
+  });
+
+export const useInterventionsByAlert = (alertId: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.interventionsByAlert(alertId ?? ''),
+    queryFn: () => api.get<Intervention[]>(`/interventions/by-alert/${alertId}`),
+    enabled: Boolean(alertId),
+  });
+
+export const useInterventionStats = (params?: QueryParams) =>
+  useQuery({
+    queryKey: queryKeys.interventionStats(params),
+    queryFn: () => api.get<InterventionStats>('/interventions/stats', buildQuery(params)),
+    refetchInterval: 60_000,
+  });
+
+export const useFieldTeams = (params?: QueryParams) =>
+  useQuery({
+    queryKey: queryKeys.fieldTeams(params),
+    queryFn: () => api.get<Paginated<FieldTeam>>('/field-teams', buildQuery(params)),
   });

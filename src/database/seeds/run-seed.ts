@@ -3,6 +3,7 @@
  *   - arborescence nationale / regions / agences / stations
  *   - groupes tarifaires du cahier des charges
  *   - comptes utilisateurs de reference (direction, plateforme, agence, technicien)
+ *   - equipes d'intervention terrain par station (iteration 3)
  *   - jeu de demonstration (client + dispositif + sous-appareils)
  *
  * Usage : npm run seed
@@ -12,12 +13,14 @@ import { NestFactory } from '@nestjs/core';
 import { getRepositoryToken } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Language, OfferPack } from '@common/enums/client.enum';
+import { FieldTeamStatus } from '@common/enums/intervention.enum';
 import { OrganizationType, StationType } from '@common/enums/organization.enum';
 import { Role } from '@common/enums/role.enum';
 import { ArmMode, SubDeviceCode } from '@common/enums/device.enum';
 import { ClientStatus } from '@common/enums/client.enum';
 import { ClientProfile } from '@database/entities/client-profile.entity';
 import { Device } from '@database/entities/device.entity';
+import { FieldTeam } from '@database/entities/field-team.entity';
 import { Organization } from '@database/entities/organization.entity';
 import { SubDevice } from '@database/entities/sub-device.entity';
 import { TariffGroup } from '@database/entities/tariff-group.entity';
@@ -116,6 +119,8 @@ async function main(): Promise<void> {
   const devicesRepository = app.get<Repository<Device>>(getRepositoryToken(Device));
   const subDevicesRepository = app.get<Repository<SubDevice>>(getRepositoryToken(SubDevice));
   const clientsRepository = app.get<Repository<ClientProfile>>(getRepositoryToken(ClientProfile));
+  const fieldTeamsRepository = app.get<Repository<FieldTeam>>(getRepositoryToken(FieldTeam));
+  const organizationsRepository = app.get<Repository<Organization>>(getRepositoryToken(Organization));
 
   const summary: string[] = [];
 
@@ -151,11 +156,39 @@ async function main(): Promise<void> {
     payload: Parameters<OrganizationsService['create']>[0],
   ): Promise<Organization> => {
     const existing = await organizationsService.findByCode(code);
-    if (existing) return existing;
+    if (existing) {
+      // Les organisations creees avant l'ajout de la geolocalisation sont
+      // completees : le siege de l'agence sert de repere d'intervention.
+      if (existing.latitude === null && payload.latitude !== undefined) {
+        await organizationsRepository.update(existing.id, {
+          latitude: payload.latitude,
+          longitude: payload.longitude ?? null,
+        });
+        existing.latitude = payload.latitude;
+        existing.longitude = payload.longitude ?? null;
+      }
+      return existing;
+    }
     const created = await organizationsService.create(payload);
     summary.push(`+ Organisation ${created.code} - ${created.name}`);
     return created;
   };
+
+  // Coordonnees des zones pilotes : elles servent de point de reference pour
+  // l'affectation des equipes et l'orientation GPS des interventions.
+  const PILOT_COORDINATES: Record<string, { latitude: number; longitude: number }> = {
+    Kinshasa: { latitude: -4.325, longitude: 15.322 },
+    Lubumbashi: { latitude: -11.6609, longitude: 27.4794 },
+    Kolwezi: { latitude: -10.7167, longitude: 25.4667 },
+  };
+
+  /** Adresse du client de demonstration, distincte de sa station de rattachement. */
+  const DEMO_CLIENT_COORDINATES = {
+    latitude: PILOT_COORDINATES.Lubumbashi.latitude + 0.031,
+    longitude: PILOT_COORDINATES.Lubumbashi.longitude - 0.018,
+  };
+
+  const nationalCoordinates = PILOT_COORDINATES.Kinshasa;
 
   const national = await ensureOrganization('NAT', {
     name: 'Direction Generale - Onesha Global',
@@ -163,6 +196,8 @@ async function main(): Promise<void> {
     type: OrganizationType.NATIONAL,
     city: 'Kinshasa',
     country: 'CD',
+    latitude: nationalCoordinates.latitude,
+    longitude: nationalCoordinates.longitude,
   });
 
   const regions: Record<string, Organization> = {};
@@ -178,6 +213,8 @@ async function main(): Promise<void> {
       parentId: national.id,
       city: region.city,
       country: 'CD',
+      latitude: PILOT_COORDINATES[region.city]?.latitude,
+      longitude: PILOT_COORDINATES[region.city]?.longitude,
     });
   }
 
@@ -194,6 +231,8 @@ async function main(): Promise<void> {
       parentId: regions[agency.region].id,
       city: agency.city,
       country: 'CD',
+      latitude: PILOT_COORDINATES[agency.city]?.latitude,
+      longitude: PILOT_COORDINATES[agency.city]?.longitude,
     });
   }
 
@@ -209,6 +248,7 @@ async function main(): Promise<void> {
   const stationsByAgency: Record<string, Record<string, Organization>> = {};
   for (const [agencyCode, agency] of Object.entries(agencies)) {
     const regionCode = agencyCode.split('-')[0];
+    const agenceCoordinates = PILOT_COORDINATES[agency.city ?? ''] ?? nationalCoordinates;
     stationsByAgency[agencyCode] = {};
     for (const kind of stationKinds) {
       const stationCode = `SRA-${kind.suffix}-${regionCode}`;
@@ -220,11 +260,59 @@ async function main(): Promise<void> {
         parentId: agency.id,
         city: agency.city ?? regionCode,
         country: 'CD',
+        latitude: agenceCoordinates?.latitude,
+        longitude: agenceCoordinates?.longitude,
       });
     }
   }
 
   const fireStation = stationsByAgency['KIN-AG01'][StationType.FIRE];
+
+  // ---------------------------------------------------------------------------
+  // 2 bis. Equipes d'intervention terrain (iteration 3)
+  // ---------------------------------------------------------------------------
+  // Chaque station dispose de deux equipes : une position initiale est posee
+  // sur le centre-ville de l'agence (base de depart), decalee par equipe afin
+  // que l'affectation automatique "la plus proche" soit pertinente en demo.
+  const CITY_COORDINATES: Record<string, { latitude: number; longitude: number }> = PILOT_COORDINATES;
+
+  const teamTemplates = [
+    { key: 'ALPHA', name: 'Equipe Alpha', offset: 0, members: 4 },
+    { key: 'BRAVO', name: 'Equipe Bravo', offset: 0.02, members: 3 },
+  ];
+
+  for (const stations of Object.values(stationsByAgency)) {
+    for (const [stationType, station] of Object.entries(stations)) {
+      const base =
+        CITY_COORDINATES[station.city ?? ''] ?? { latitude: -4.325, longitude: 15.322 };
+
+      for (const template of teamTemplates) {
+        const existing = await fieldTeamsRepository.findOne({
+          where: { stationId: station.id, name: template.name },
+        });
+        if (existing) continue;
+
+        await fieldTeamsRepository.save(
+          fieldTeamsRepository.create({
+            name: template.name,
+            code: `${station.code}-${template.key}`,
+            stationId: station.id,
+            speciality: stationType as StationType,
+            status: FieldTeamStatus.AVAILABLE,
+            leaderName: `Chef ${template.name.replace('Equipe ', '')}`,
+            leaderPhone: '+243970255599',
+            membersCount: template.members,
+            vehiclePlate: `ZGO-${station.code.slice(-4)}-${template.key.slice(0, 2)}`,
+            currentLatitude: base.latitude + template.offset,
+            currentLongitude: base.longitude + template.offset,
+            lastPositionAt: new Date(),
+            notes: 'Equipe de demonstration (seed).',
+          }),
+        );
+        summary.push(`+ Equipe ${template.name} - ${station.name}`);
+      }
+    }
+  }
 
   // ---------------------------------------------------------------------------
   // 3. Comptes utilisateurs de reference
@@ -373,8 +461,10 @@ async function main(): Promise<void> {
         address: '12, avenue de la Paix',
         city: 'Lubumbashi',
         country: 'CD',
-        latitude: -11.6609,
-        longitude: 27.4794,
+        // A environ 4 km de la station de rattachement : les missions de
+        // demonstration affichent une distance et une ETA realistes.
+        latitude: DEMO_CLIENT_COORDINATES.latitude,
+        longitude: DEMO_CLIENT_COORDINATES.longitude,
         organizationId: agencies['LUB-AG01'].id,
         offerPack: OfferPack.STANDARD,
         tariffGroupId: standardTariff?.id,
@@ -389,6 +479,23 @@ async function main(): Promise<void> {
       );
       if (created.temporaryPassword) {
         summary.push(`  mot de passe genere : ${created.temporaryPassword}`);
+      }
+    }
+
+    if (demoClient) {
+      // Un client de demonstration confondu avec sa station afficherait 0 m et
+      // 0 min sur une mission : on recale son adresse sur le repere de reference.
+      const onStation =
+        demoClient.latitude === PILOT_COORDINATES.Lubumbashi.latitude &&
+        demoClient.longitude === PILOT_COORDINATES.Lubumbashi.longitude;
+      if (onStation) {
+        await clientsRepository.update(demoClient.id, {
+          latitude: DEMO_CLIENT_COORDINATES.latitude,
+          longitude: DEMO_CLIENT_COORDINATES.longitude,
+        });
+        demoClient.latitude = DEMO_CLIENT_COORDINATES.latitude;
+        demoClient.longitude = DEMO_CLIENT_COORDINATES.longitude;
+        summary.push('  -> adresse du client de demonstration repositionnee a 4 km de sa station');
       }
     }
 

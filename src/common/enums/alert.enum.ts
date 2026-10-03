@@ -31,13 +31,7 @@ export enum AlertStatus {
 }
 
 /** Cycle de vie d'une mission d'intervention terrain. */
-export enum InterventionStatus {
-  ASSIGNED = 'ASSIGNED',
-  EN_ROUTE = 'EN_ROUTE',
-  ON_SITE = 'ON_SITE',
-  COMPLETED = 'COMPLETED',
-  ABORTED = 'ABORTED',
-}
+export { InterventionStatus } from '@common/enums/intervention.enum';
 
 /** Issu de l'appel vocal IA aupres du client. */
 export enum VoiceCallOutcome {
