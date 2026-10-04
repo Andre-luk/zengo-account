@@ -55,6 +55,8 @@ export enum SmsTemplate {
   SUBSCRIPTION_ACTIVATED = 'SUBSCRIPTION_ACTIVATED',
   /** L'abonnement arrive a echeance : relance du client. */
   SUBSCRIPTION_EXPIRING = 'SUBSCRIPTION_EXPIRING',
+  /** Le dossier client change d'agence : information et nouveaux contacts. */
+  MUTATION_APPLIED = 'MUTATION_APPLIED',
   /** Message libre redige depuis la console. */
   CUSTOM = 'CUSTOM',
 }

@@ -1,6 +1,6 @@
 # Feuille de route — Zengo Account
 
-Le socle livré couvre les **itérations 1 et 2**. Les itérations suivantes reprennent
+Le socle livré couvre les **itérations 1 à 5**. Les itérations suivantes reprennent
 point par point le cahier des charges `ZENGO_ACCOUNT_plateforme...pdf`.
 
 ## Itération 1 — Socle multi-tenant ✅ (livrée)
@@ -73,14 +73,22 @@ Détail : [`INTERVENTIONS.md`](./INTERVENTIONS.md).
 
 Détail : [`ABONNEMENTS.md`](./ABONNEMENTS.md).
 
-## Itération 5 — Mutation géographique
+## Itération 5 — Mutation géographique ✅ (livrée)
 
-- [ ] Entité `ClientMutation` avec double validation (agent + Directeur contrôle qualité)
-- [ ] Transfert du dossier complet vers le portefeuille de l'agence de destination
-- [ ] Redirection des alertes vers les centres de secours de la nouvelle région
-- [ ] Historique des mutations, retour à l'agence d'origine, rapport automatique
-- [ ] Notification client (SMS/app) et notification interne inter-services
-- [ ] Rapport d'intégration à 7 et 30 jours
+- [x] Entité `ClientMutation` avec double validation (agent + Directeur contrôle qualité)
+- [x] Transfert du dossier complet vers le portefeuille de l'agence de destination
+- [x] Redirection des alertes vers les centres de secours de la nouvelle région
+- [x] Historique des mutations, retour à l'agence d'origine, rapport automatique
+- [x] Notification client (SMS/app) et notification interne inter-services
+- [x] Rapport d'intégration à 7 et 30 jours
+- [x] Console web : écran « Mutations » (indicateurs, journal, demande, double validation, suivi d'intégration)
+
+Détail : [`MUTATIONS.md`](./MUTATIONS.md).
+
+Reste à traiter dans l'itération 5 :
+- [ ] Notification automatique des services internes (technique, finance) — la liste est prête
+- [ ] Notification dans l'application mobile client en complément du SMS
+- [ ] Synthèse mensuelle des mutations par agence (rattachée au tableau de bord finance)
 
 ## Itération 6 — e-Santé connectée
 
@@ -95,6 +103,8 @@ Détail : [`ABONNEMENTS.md`](./ABONNEMENTS.md).
 - [ ] Application mobile client et agents (React Native + Expo) avec suivi GPS
 - [ ] Guidage vocal des agents (TTS/STT) et assistant IA embarqué
 - [ ] Multi-langue de l'interface (FR, EN, SW, LN, LU, KG)
-- [ ] Analyse prédictive communautaire (zones à risque) et notifications de prévention  _(l'analyse par zone est livree, voir [`RISQUES.md`](./RISQUES.md) ; restent les notifications de prevention)_- [ ] Système embarqué véhicule d'intervention (GPS, TTS/STT, 4G/5G)
+- [ ] Analyse prédictive communautaire (zones à risque) et notifications de prévention
+      _(l'analyse par zone est livrée, voir [`RISQUES.md`](./RISQUES.md) ; restent les notifications de prévention)_
+- [ ] Système embarqué véhicule d'intervention (GPS, TTS/STT, 4G/5G)
 - [ ] Migrations TypeORM versionnées, CI/CD, observabilité (logs, métriques, traces)
 - [ ] Authentification MQTT par certificat/broker managé et rotation des secrets

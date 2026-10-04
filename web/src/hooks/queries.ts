@@ -27,6 +27,9 @@ import type {
   Subscription,
   SubscriptionStats,
   ClientSubscriptionState,
+  ClientMutation,
+  MutationStats,
+  IntegrationHorizon,
 } from '@/types/api';
 
 export type QueryParams = Record<string, string | number | boolean | undefined>;
@@ -123,6 +126,52 @@ export const useClientSubscription = (clientId: string | undefined) =>
   useQuery({
     queryKey: queryKeys.clientSubscription(clientId ?? ''),
     queryFn: () => api.get<ClientSubscriptionState>(`/subscriptions/clients/${clientId}`),
+    enabled: Boolean(clientId),
+  });
+
+/** Mutations geographiques (iteration 5). */
+export const useMutations = (
+  params: {
+    status?: string;
+    reason?: string;
+    clientId?: string;
+    openOnly?: boolean;
+    search?: string;
+    page?: number;
+    limit?: number;
+  } = {},
+) =>
+  useQuery({
+    queryKey: queryKeys.mutations(params),
+    queryFn: () => api.get<Paginated<ClientMutation>>('/client-mutations', params),
+  });
+
+export const useMutationDetail = (id: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.mutation(id ?? ''),
+    queryFn: () => api.get<ClientMutation>(`/client-mutations/${id}`),
+    enabled: Boolean(id),
+  });
+
+export const useMutationStats = (days = 90) =>
+  useQuery({
+    queryKey: queryKeys.mutationStats(days),
+    queryFn: () => api.get<MutationStats>('/client-mutations/stats', { days }),
+    staleTime: 60_000,
+  });
+
+export const useClientMutations = (clientId: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.clientMutations(clientId ?? ''),
+    queryFn: () =>
+      api.get<{
+        clientId: string;
+        organizationId: string;
+        organizationName: string | null;
+        originOrganizationId: string | null;
+        mutations: ClientMutation[];
+        pendingIntegration: IntegrationHorizon[];
+      }>(`/client-mutations/clients/${clientId}`),
     enabled: Boolean(clientId),
   });
 

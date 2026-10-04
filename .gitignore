@@ -32,3 +32,6 @@ logs/
 # Artefacts tsc eventuels dans la console (les sources .ts/.tsx font foi)
 /web/src/**/*.js
 /web/src/**/*.js.map
+
+# Artefacts de compilation TypeScript (web)
+*.tsbuildinfo

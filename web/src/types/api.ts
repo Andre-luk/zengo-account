@@ -221,6 +221,77 @@ export interface SubscriptionStats {
   pendingPayments: number;
 }
 
+export type MutationType = 'TRANSFER' | 'RETURN';
+export type MutationStatus =
+  | 'REQUESTED'
+  | 'IN_REVIEW'
+  | 'APPROVED'
+  | 'REJECTED'
+  | 'APPLIED'
+  | 'REVERTED'
+  | 'CANCELLED';
+export type MutationReason =
+  | 'CLIENT_MOVED'
+  | 'ASSIGNMENT_ERROR'
+  | 'CLIENT_REQUEST'
+  | 'COVERAGE_OPTIMISATION'
+  | 'COMMERCIAL_DISPUTE'
+  | 'OTHER';
+export type IntegrationHorizon = 7 | 30;
+export type IntegrationOutcome = 'SATISFACTORY' | 'ISSUES_REPORTED' | 'CLIENT_LOST' | 'PENDING';
+
+export interface ClientMutation {
+  id: string;
+  reference: string;
+  type: MutationType;
+  status: MutationStatus;
+  reason: MutationReason;
+  note: string | null;
+  client: { id: string; zengoId: string; fullName: string; primaryPhone: string } | null;
+  from: { id: string; name: string; city: string | null };
+  to: { id: string; name: string; city: string | null };
+  requestedByLabel: string | null;
+  requestedAt: string;
+  reviewedByLabel: string | null;
+  reviewedAt: string | null;
+  reviewComment: string | null;
+  rejectionReason: string | null;
+  appliedAt: string | null;
+  appliedByLabel: string | null;
+  regionChanged: boolean;
+  alertsRedirected: number;
+  caseLoadSummary: string | null;
+  servicesNotified: string[];
+  clientNotifiedAt: string | null;
+  revertedAt: string | null;
+  revertReason: string | null;
+  integration: {
+    horizon: IntegrationHorizon;
+    dueAt: string | null;
+    reportedAt: string | null;
+    outcome: IntegrationOutcome | null;
+    note: string | null;
+    late: boolean;
+  }[];
+  pendingIntegration: IntegrationHorizon[];
+  canBeReviewed: boolean;
+  canBeApplied: boolean;
+  canBeReverted: boolean;
+}
+
+export interface MutationStats {
+  windowDays: number;
+  total: number;
+  byStatus: { status: MutationStatus; count: number }[];
+  byReason: { reason: MutationReason; count: number }[];
+  averageProcessingHours: number | null;
+  applied: number;
+  rejected: number;
+  reverted: number;
+  integrationPending: number;
+  integrationLate: number;
+}
+
 export type Role =
   | 'SUPER_ADMIN'
   | 'NATIONAL_DIRECTOR'

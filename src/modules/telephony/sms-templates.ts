@@ -40,6 +40,10 @@ export interface SmsContext {
   endsAt?: string;
   /** Jours restants avant echeance. */
   daysRemaining?: number | string;
+  /** Nom de l'agence qui reprend le dossier (mutation geographique). */
+  agencyName?: string;
+  /** Ville de cette agence, deja prefixee (`, Lubumbashi`). */
+  city?: string;
 }
 
 /** Texte par situation et par langue, avec les variables entre accolades. */
@@ -129,6 +133,20 @@ export const SMS_TEMPLATES: Record<SmsTemplate, Record<Language, string>> = {
       'Zengo: abone yebe ushila {endsAt} (mifuku {daysRemaining}). Vundulula bika kulama kushale. Lusadisu: {emergencyPhone}.',
     [Language.KIKONGO]:
       'Zengo: abone na nge me manaka {endsAt} (bilumbu {daysRemaining}). Vukisa mpi kukengila kubikala. Lusadisu: {emergencyPhone}.',
+  },
+  [SmsTemplate.MUTATION_APPLIED]: {
+    [Language.FRENCH]:
+      'Zengo : votre dossier est desormais suivi par {agencyName}{city}. Vos interventions seront coordonnees depuis cette agence. Service client : {emergencyPhone}.',
+    [Language.ENGLISH]:
+      'Zengo: your account is now handled by {agencyName}{city}. Interventions will be coordinated from this office. Support: {emergencyPhone}.',
+    [Language.SWAHILI]:
+      'Zengo: faili yako sasa inafuatiliwa na {agencyName}{city}. Huduma zitapelekwa kutoka ofisi hii. Huduma kwa wateja: {emergencyPhone}.',
+    [Language.LINGALA]:
+      'Zengo : dossier na yo ezali kobatama banda sikoyo na {agencyName}{city}. Ba interventions ekosalema na biro yango. Lisalisi : {emergencyPhone}.',
+    [Language.CHILUBA]:
+      'Zengo: dilongolongo diebe didi kulondololua ne {agencyName}{city}. Malu onso akasalama ku biro eyi. Lusadisu: {emergencyPhone}.',
+    [Language.KIKONGO]:
+      'Zengo: mukanda na nge ke landama na {agencyName}{city}. Ba interventions ke salama na biro yayi. Lusadisu: {emergencyPhone}.',
   },
   [SmsTemplate.CUSTOM]: {
     [Language.FRENCH]: '{body}',

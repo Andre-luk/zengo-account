@@ -15,6 +15,7 @@ import { ForbiddenPage, NotFoundPage } from '@/routes/FallbackPages';
 import { LoginPage } from '@/routes/LoginPage';
 import { MissionsPage } from '@/routes/MissionsPage';
 import { SubscriptionsPage } from '@/routes/SubscriptionsPage';
+import { MutationsPage } from '@/routes/MutationsPage';
 import { OrganizationsPage } from '@/routes/OrganizationsPage';
 import { TariffsPage } from '@/routes/TariffsPage';
 import { UsersPage } from '@/routes/UsersPage';
@@ -95,6 +96,26 @@ export const App = () => {
               ]}
             >
               <SubscriptionsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/mutations"
+          element={
+            <RequireRole
+              roles={[
+                'SUPER_ADMIN',
+                'NATIONAL_DIRECTOR',
+                'TECHNICAL_DIRECTOR',
+                'PLATFORM_MANAGER',
+                'QUALITY_DIRECTOR',
+                'REGION_MANAGER',
+                'AGENCY_MANAGER',
+                'OPERATOR',
+                'SUPERVISOR',
+              ]}
+            >
+              <MutationsPage />
             </RequireRole>
           }
         />

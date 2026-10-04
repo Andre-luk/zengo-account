@@ -11,6 +11,7 @@ import { Server, Socket } from 'socket.io';
 import { Subscription } from 'rxjs';
 import { AlertEventBus, AlertRealtimeEvent } from '@common/bus/alert-event.bus';
 import { InterventionEventBus, InterventionRealtimeEvent } from '@common/bus/intervention-event.bus';
+import { MutationEventBus, MutationRealtimeEvent } from '@common/bus/mutation-event.bus';
 import { NATIONAL_SCOPE_ROLES } from '@common/enums/role.enum';
 import { AccessTokenPayload } from '@common/interfaces/authenticated-user.interface';
 import { UsersService } from '@modules/users/users.service';
@@ -39,6 +40,7 @@ export class AlertGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   private readonly logger = new Logger(AlertGateway.name);
   private subscription: Subscription | null = null;
   private interventionSubscription: Subscription | null = null;
+  private mutationSubscription: Subscription | null = null;
 
   @WebSocketServer()
   server!: Server;
@@ -46,6 +48,7 @@ export class AlertGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   constructor(
     private readonly alertEventBus: AlertEventBus,
     private readonly interventionEventBus: InterventionEventBus,
+    private readonly mutationEventBus: MutationEventBus,
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
@@ -54,11 +57,13 @@ export class AlertGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   onModuleInit(): void {
     this.subscription = this.alertEventBus.subscribe((event) => this.broadcast(event));
     this.interventionSubscription = this.interventionEventBus.subscribe((event) => this.broadcastIntervention(event));
+    this.mutationSubscription = this.mutationEventBus.subscribe((event) => this.broadcastMutation(event));
   }
 
   onModuleDestroy(): void {
     this.subscription?.unsubscribe();
     this.interventionSubscription?.unsubscribe();
+    this.mutationSubscription?.unsubscribe();
   }
 
   async handleConnection(client: Socket): Promise<void> {
@@ -129,6 +134,25 @@ export class AlertGateway implements OnGatewayConnection, OnGatewayDisconnect, O
 
     const rooms = event.organizationIds.length > 0 ? event.organizationIds : [NATIONAL_ROOM];
     const targets = rooms.map((room) => (room === NATIONAL_ROOM ? NATIONAL_ROOM : roomFor(room)));
+
+    this.server.to(targets).emit(event.type, event);
+  }
+
+  /**
+   * Diffusion des mutations geographiques.
+   *
+   * L'evenement part vers les deux agences concernees et la salle nationale :
+   * l'agence d'origine doit voir partir le dossier, l'agence d'accueil doit
+   * savoir qu'elle le reprend, et la direction suit l'ensemble.
+   */
+  private broadcastMutation(event: MutationRealtimeEvent): void {
+    if (!this.server) return;
+
+    const rooms = [event.fromOrganizationId, event.toOrganizationId].filter(
+      (id): id is string => Boolean(id),
+    );
+    const targets = rooms.length > 0 ? rooms.map(roomFor) : [NATIONAL_ROOM];
+    if (!targets.includes(NATIONAL_ROOM)) targets.push(NATIONAL_ROOM);
 
     this.server.to(targets).emit(event.type, event);
   }

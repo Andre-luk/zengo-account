@@ -198,6 +198,37 @@ export const SUBSCRIPTION_DURATION: Record<string, Described> = {
   '180': described('180 jours', 'success'),
 };
 
+export const MUTATION_STATUS: Record<string, Described> = {
+  REQUESTED: described('Demandée', 'info'),
+  IN_REVIEW: described('En instruction', 'brand'),
+  APPROVED: described('Validée', 'success'),
+  REJECTED: described('Refusée', 'danger'),
+  APPLIED: described('Transférée', 'success'),
+  REVERTED: described('Retour effectué', 'warning'),
+  CANCELLED: described('Retirée', 'neutral'),
+};
+
+export const MUTATION_TYPE: Record<string, Described> = {
+  TRANSFER: described('Transfert', 'brand'),
+  RETURN: described('Retour', 'warning'),
+};
+
+export const MUTATION_REASON: Record<string, Described> = {
+  CLIENT_MOVED: described('Déménagement du client', 'info'),
+  ASSIGNMENT_ERROR: described("Erreur d'affectation", 'danger'),
+  CLIENT_REQUEST: described('Demande du client', 'brand'),
+  COVERAGE_OPTIMISATION: described('Optimisation de couverture', 'neutral'),
+  COMMERCIAL_DISPUTE: described('Litige commercial', 'warning'),
+  OTHER: described('Autre motif', 'neutral'),
+};
+
+export const INTEGRATION_OUTCOME: Record<string, Described> = {
+  SATISFACTORY: described('Intégration satisfaisante', 'success'),
+  ISSUES_REPORTED: described('Difficultés signalées', 'warning'),
+  CLIENT_LOST: described('Client perdu', 'danger'),
+  PENDING: described('Rapport attendu', 'neutral'),
+};
+
 // --- Clients -----------------------------------------------------------------
 
 export const CLIENT_STATUS: Record<string, Described> = {

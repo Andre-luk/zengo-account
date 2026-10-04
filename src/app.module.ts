@@ -17,6 +17,7 @@ import { ClientsModule } from '@modules/clients/clients.module';
 import { DevicesModule } from '@modules/devices/devices.module';
 import { HealthModule } from '@modules/health/health.module';
 import { InterventionsModule } from '@modules/interventions/interventions.module';
+import { ClientMutationsModule } from '@modules/mutations/client-mutations.module';
 import { SubscriptionsModule } from '@modules/subscriptions/subscriptions.module';
 import { IotModule } from '@modules/iot/iot.module';
 import { OrganizationsModule } from '@modules/organizations/organizations.module';
@@ -61,6 +62,7 @@ import { UsersModule } from '@modules/users/users.module';
     AlertsModule,
     InterventionsModule,
     SubscriptionsModule,
+    ClientMutationsModule,
     IotModule,
     RealtimeModule,
     HealthModule,

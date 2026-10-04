@@ -380,6 +380,17 @@ async function main(): Promise<void> {
     password: 'Zengo@2026',
   });
 
+  // Seconde validation des mutations geographiques : le controle qualite doit
+  // etre porte par un compte distinct de celui qui demande le transfert.
+  await ensureUser({
+    email: 'qualite@zengo.cd',
+    firstName: 'Directeur',
+    lastName: 'Controle Qualite',
+    organizationId: national.id,
+    role: Role.QUALITY_DIRECTOR,
+    password: 'Zengo@2026',
+  });
+
   await ensureUser({
     email: 'chef.kinshasa@zengo.cd',
     firstName: 'Chef',
@@ -557,6 +568,7 @@ async function main(): Promise<void> {
   console.log(`   Super admin        : ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`);
   console.log('   Responsable platef.: plateforme@zengo.cd / Zengo@2026');
   console.log('   Direction technique: technique@zengo.cd / Zengo@2026');
+  console.log('   Controle qualite   : qualite@zengo.cd / Zengo@2026');
   console.log('   Chef agence Kinsh. : chef.kinshasa@zengo.cd / Zengo@2026');
   console.log('   Technicien         : technicien@zengo.cd / Zengo@2026');
   console.log('   Operateur ZMC      : operateur.zmc@zengo.cd / Zengo@2026');

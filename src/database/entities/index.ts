@@ -2,6 +2,7 @@ export * from '@database/entities/alert-dispatch.entity';
 export * from '@database/entities/alert-event.entity';
 export * from '@database/entities/alert.entity';
 export * from '@database/entities/audit-log.entity';
+export * from '@database/entities/client-mutation.entity';
 export * from '@database/entities/client-profile.entity';
 export * from '@database/entities/device.entity';
 export * from '@database/entities/field-team.entity';
@@ -23,6 +24,7 @@ import { AlertDispatch } from '@database/entities/alert-dispatch.entity';
 import { AlertEvent } from '@database/entities/alert-event.entity';
 import { Alert } from '@database/entities/alert.entity';
 import { AuditLog } from '@database/entities/audit-log.entity';
+import { ClientMutation } from '@database/entities/client-mutation.entity';
 import { ClientProfile } from '@database/entities/client-profile.entity';
 import { Device } from '@database/entities/device.entity';
 import { FieldTeam } from '@database/entities/field-team.entity';
@@ -57,6 +59,7 @@ export const ENTITIES = [
   SmsMessage,
   Subscription,
   Payment,
+  ClientMutation,
   FieldTeam,
   Intervention,
   InterventionReport,
