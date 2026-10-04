@@ -25,6 +25,7 @@ import { AuthenticatedUser } from '@common/interfaces/authenticated-user.interfa
 import { ClientProfile } from '@database/entities/client-profile.entity';
 import { Device } from '@database/entities/device.entity';
 import { SubDevice } from '@database/entities/sub-device.entity';
+import { AlertDispatch } from '@database/entities/alert-dispatch.entity';
 import { AlertEvent } from '@database/entities/alert-event.entity';
 import { Alert } from '@database/entities/alert.entity';
 import { Organization } from '@database/entities/organization.entity';
@@ -93,6 +94,8 @@ export class AlertsService {
     private readonly subDeviceRepository: Repository<SubDevice>,
     @InjectRepository(Organization)
     private readonly organizationRepository: Repository<Organization>,
+    @InjectRepository(AlertDispatch)
+    private readonly alertDispatchRepository: Repository<AlertDispatch>,
     private readonly scopeService: OrganizationScopeService,
     private readonly alertLifecycle: AlertLifecycleService,
     private readonly alertVoiceCall: AlertVoiceCallService,
@@ -774,7 +777,19 @@ export class AlertsService {
     if (scope === null) return false;
     if (scope.length === 0) return true;
 
-    builder.andWhere('alert.organizationId IN (:...scope)', { scope });
+    // Une station ne voit pas le portefeuille de son agence : elle voit
+    // uniquement les alertes qui lui ont ete affectees (dispatch). Sans cette
+    // regle, une station notifiee ne pourrait ni ouvrir ni accuser le dossier.
+    builder.andWhere(
+      new Brackets((where) => {
+        where
+          .where('alert.organizationId IN (:...scope)', { scope })
+          .orWhere(
+            'EXISTS (SELECT 1 FROM alert_dispatches d WHERE d.alert_id = alert.id AND d.station_id IN (:...scope))',
+            { scope },
+          );
+      }),
+    );
     return false;
   }
 
@@ -787,13 +802,28 @@ export class AlertsService {
 
     if (!alert.organizationId) {
       const scope = await this.scopeService.getAccessibleOrganizationIds(actor);
-      if (scope !== null) {
+      if (scope !== null && !(await this.isDispatchedToScope(actor, alert.id))) {
         throw new ForbiddenException('Acces refuse a cette alerte.');
       }
       return;
     }
 
-    await this.scopeService.assertInScope(actor, alert.organizationId);
+    const scope = await this.scopeService.getAccessibleOrganizationIds(actor);
+    if (scope !== null && !scope.includes(alert.organizationId)) {
+      // La station affectee garde l'acces au dossier qu'elle doit traiter.
+      if (await this.isDispatchedToScope(actor, alert.id)) return;
+      throw new ForbiddenException('Acces refuse : organisation hors de votre perimetre.');
+    }
+  }
+
+  /** L'alerte a-t-elle ete diffusee a une organisation du perimetre de l'acteur ? */
+  private async isDispatchedToScope(actor: AuthenticatedUser, alertId: string): Promise<boolean> {
+    const scope = await this.scopeService.getAccessibleOrganizationIds(actor);
+    if (scope === null || scope.length === 0) return false;
+    const count = await this.alertDispatchRepository.count({
+      where: { alertId, stationId: In(scope) },
+    });
+    return count > 0;
   }
 
   /** Un utilisateur n'ayant que le role CLIENT ne voit que ses propres alertes. */

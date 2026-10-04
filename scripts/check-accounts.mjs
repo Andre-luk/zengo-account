@@ -20,6 +20,7 @@ const ACCOUNTS = [
   ['technicien@zengo.cd', 'TECHNICIAN'],
   ['operateur.zmc@zengo.cd', 'OPERATOR'],
   ['station.pompiers@zengo.cd', 'STATION_AGENT'],
+  ['station.intrusion@zengo.cd', 'STATION_AGENT'],
   ['client.demo@zengo.cd', 'CLIENT'],
 ];
 
@@ -109,6 +110,7 @@ console.log(`   ${lensClients?.items?.length ?? 0} dossier(s) client visible(s)`
 console.log('\n4. Postes operationnels');
 await check('File d alertes ouverte (operateur ZMC)', 'GET', '/alerts?openOnly=true', 'operateur.zmc@zengo.cd', 200);
 await check('Missions (operateur ZMC)', 'GET', '/interventions', 'operateur.zmc@zengo.cd', 200);
+await check('Dossiers visibles par une station (agent de station)', 'GET', '/alerts?limit=50', 'station.intrusion@zengo.cd', 200);
 await check('Dossier de sante du client (personnel de sante)', 'GET', `/clients/${lensClients?.items?.[0]?.id ?? '00000000-0000-4000-8000-000000000000'}`, 'sante@zengo.cd', 200);
 await check('Journal d audit (admin)', 'GET', '/audit-logs?limit=5', 'admin@zengo.cd', 200);
 await check('Journal d audit refuse a l operateur (403)', 'GET', '/audit-logs', 'operateur.zmc@zengo.cd', [403]);

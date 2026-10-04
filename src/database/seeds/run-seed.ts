@@ -267,6 +267,8 @@ async function main(): Promise<void> {
   }
 
   const fireStation = stationsByAgency['KIN-AG01'][StationType.FIRE];
+  /** Station intrusion de la zone de demonstration (Lubumbashi). */
+  const demoIntrusionStation = stationsByAgency['LUB-AG01'][StationType.INTRUSION];
 
   // ---------------------------------------------------------------------------
   // 2 bis. Equipes d'intervention terrain (iteration 3)
@@ -469,6 +471,17 @@ async function main(): Promise<void> {
     password: 'Zengo@2026',
   });
 
+  // Station de la zone de demonstration : c'est elle qui recoit l'escalade de
+  // l'intrusion du jeu de demonstration (client installe a Lubumbashi).
+  await ensureUser({
+    email: 'station.intrusion@zengo.cd',
+    firstName: 'Agent',
+    lastName: 'Station Intrusion Lubumbashi',
+    organizationId: demoIntrusionStation.id,
+    role: Role.STATION_AGENT,
+    password: 'Zengo@2026',
+  });
+
   // ---------------------------------------------------------------------------
   // 4. Jeu de demonstration (client + dispositif + sous-appareils)
   // ---------------------------------------------------------------------------
@@ -619,6 +632,7 @@ async function main(): Promise<void> {
   console.log('   Technicien         : technicien@zengo.cd / Zengo@2026');
   console.log('   Operateur ZMC      : operateur.zmc@zengo.cd / Zengo@2026');
   console.log('   Agent station      : station.pompiers@zengo.cd / Zengo@2026');
+  console.log('   Agent station LUB  : station.intrusion@zengo.cd / Zengo@2026');
   if (DEMO_ENABLED) {
     console.log('   Client demo        : client.demo@zengo.cd / Client@2026');
   }

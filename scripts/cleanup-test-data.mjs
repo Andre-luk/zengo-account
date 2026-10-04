@@ -40,8 +40,6 @@ const KEEP_EMAILS = [
   'operateur.zmc@zengo.cd',
   'station.pompiers@zengo.cd',
   'client.demo@zengo.cd',
-  'marie.ilunga@example.cd',
-  'joseph.mukendi@example.cd',
 ];
 
 const client = new Client({

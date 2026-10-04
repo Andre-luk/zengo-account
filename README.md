@@ -114,6 +114,7 @@ décrits dans [`docs/SIMULATION-INTRUSION.md`](docs/SIMULATION-INTRUSION.md).
 | Technicien installateur | `technicien@zengo.cd` | `Zengo@2026` |
 | Opérateur ZMC | `operateur.zmc@zengo.cd` | `Zengo@2026` |
 | Agent de station (incendie) | `station.pompiers@zengo.cd` | `Zengo@2026` |
+| Agent de station (intrusion Lubumbashi) | `station.intrusion@zengo.cd` | `Zengo@2026` |
 | Client de démonstration | `client.demo@zengo.cd` | `Client@2026` |
 
 > ⚠️ Ces comptes sont destinés au développement. En production, renseignez
@@ -142,7 +143,7 @@ décrits dans [`docs/SIMULATION-INTRUSION.md`](docs/SIMULATION-INTRUSION.md).
 | `npm run mqtt:broker` | Broker MQTT embarqué (aedes) pour le développement |
 | `npm run demo:alarme` | Déclenche une intrusion (MQTT) : `-- --dtmf 1`, `-- --capteur PIR` |
 | `npm run demo:intrusion` | Parcours d'intrusion complet, commenté étape par étape |
-| `npm run check:accounts` | Connexion et vérification des droits des 13 comptes |
+| `npm run check:accounts` | Connexion et vérification des droits des 14 comptes |
 | `npm run db:clean` | Purge des données de test (`-- --dry-run` pour simuler) |
 | `npm run seed` | Jeu de données initial (idempotent) |
 | `npm run db:pg:start` / `db:pg:stop` | PostgreSQL embarqué de développement |

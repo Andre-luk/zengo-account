@@ -59,6 +59,7 @@ d'environnement n'est nécessaire en local.
 | Opérateur ZMC | `operateur.zmc@zengo.cd` | `Zengo@2026` |
 | Technicien installateur | `technicien@zengo.cd` | `Zengo@2026` |
 | Agent de station | `station.pompiers@zengo.cd` | `Zengo@2026` |
+| Agent de station (Lubumbashi) | `station.intrusion@zengo.cd` | `Zengo@2026` |
 | Client (mobile) | `client.demo@zengo.cd` | `Client@2026` |
 
 ## Organisation du code
