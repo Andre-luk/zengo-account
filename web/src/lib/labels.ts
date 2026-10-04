@@ -229,6 +229,80 @@ export const INTEGRATION_OUTCOME: Record<string, Described> = {
   PENDING: described('Rapport attendu', 'neutral'),
 };
 
+// --- e-Santé connectée ------------------------------------------------------
+
+export const HEALTH_METRIC: Record<string, Described> = {
+  BLOOD_PRESSURE: described('Tension artérielle', 'brand'),
+  HEART_RATE: described('Fréquence cardiaque', 'info'),
+  SPO2: described('Saturation O₂', 'brand'),
+  BLOOD_GLUCOSE: described('Glycémie', 'warning'),
+  TEMPERATURE: described('Température', 'warning'),
+  WEIGHT: described('Poids / IMC', 'neutral'),
+};
+
+export const HEALTH_READING_STATUS: Record<string, Described> = {
+  NORMAL: described('Normale', 'success'),
+  WATCH: described('À surveiller', 'warning'),
+  CRITICAL: described('Critique', 'danger'),
+};
+
+export const HEALTH_TREND: Record<string, Described> = {
+  IMPROVING: described('En amélioration', 'success'),
+  WORSENING: described('En dégradation', 'danger'),
+  STABLE: described('Stable', 'neutral'),
+  INSUFFICIENT: described('Données insuffisantes', 'neutral'),
+};
+
+export const HEALTH_SOURCE: Record<string, Described> = {
+  DEVICE: described('Dispositif connecté', 'brand'),
+  MANUAL: described('Saisie agent / infirmier', 'info'),
+  CLIENT_APP: described('Application client', 'neutral'),
+  IMPORT: described('Import', 'neutral'),
+};
+
+export const HEALTH_CONSENT_SCOPE: Record<string, Described> = {
+  DATA_SHARING: described('Partage des mesures', 'brand'),
+  NURSE_CONTACT: described('Contact infirmier', 'info'),
+  EMERGENCY_DISCLOSURE: described('Divulgation en urgence', 'danger'),
+};
+
+export const HEALTH_CONSENT_STATUS: Record<string, Described> = {
+  GRANTED: described('Accordé', 'success'),
+  REVOKED: described('Retiré', 'danger'),
+  EXPIRED: described('Expiré', 'warning'),
+};
+
+export const HEALTH_CONSENT_CHANNEL: Record<string, Described> = {
+  CLIENT_APP: described('Application client', 'brand'),
+  SMS: described('SMS', 'info'),
+  PAPER: described('Papier signé', 'neutral'),
+  CALL_CENTER: described('Centre d’appel', 'neutral'),
+};
+
+export const HEALTH_ACCESS_ACTION: Record<string, Described> = {
+  VIEW: described('Consultation', 'neutral'),
+  EXPORT: described('Export', 'info'),
+  SHARE: described('Partage', 'brand'),
+  CONSENT_GRANTED: described('Consentement accordé', 'success'),
+  CONSENT_REVOKED: described('Consentement retiré', 'danger'),
+  EMERGENCY: described('Accès d’urgence', 'danger'),
+  ERASED: described('Effacement', 'warning'),
+};
+
+export const NURSE_REQUEST_STATUS: Record<string, Described> = {
+  REQUESTED: described('Demandée', 'warning'),
+  ACCEPTED: described('Acceptée', 'info'),
+  IN_PROGRESS: described('En cours', 'brand'),
+  COMPLETED: described('Clôturée', 'success'),
+  CANCELLED: described('Annulée', 'neutral'),
+};
+
+export const NURSE_REQUEST_PRIORITY: Record<string, Described> = {
+  ROUTINE: described('Routine', 'neutral'),
+  URGENT: described('Urgente', 'warning'),
+  EMERGENCY: described('Urgence vitale', 'danger'),
+};
+
 // --- Clients -----------------------------------------------------------------
 
 export const CLIENT_STATUS: Record<string, Described> = {

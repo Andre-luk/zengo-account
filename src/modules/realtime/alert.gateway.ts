@@ -10,6 +10,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { Subscription } from 'rxjs';
 import { AlertEventBus, AlertRealtimeEvent } from '@common/bus/alert-event.bus';
+import { HealthEventBus, HealthRealtimeEvent } from '@common/bus/health-event.bus';
 import { InterventionEventBus, InterventionRealtimeEvent } from '@common/bus/intervention-event.bus';
 import { MutationEventBus, MutationRealtimeEvent } from '@common/bus/mutation-event.bus';
 import { NATIONAL_SCOPE_ROLES } from '@common/enums/role.enum';
@@ -41,6 +42,7 @@ export class AlertGateway implements OnGatewayConnection, OnGatewayDisconnect, O
   private subscription: Subscription | null = null;
   private interventionSubscription: Subscription | null = null;
   private mutationSubscription: Subscription | null = null;
+  private healthSubscription: Subscription | null = null;
 
   @WebSocketServer()
   server!: Server;
@@ -49,6 +51,7 @@ export class AlertGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     private readonly alertEventBus: AlertEventBus,
     private readonly interventionEventBus: InterventionEventBus,
     private readonly mutationEventBus: MutationEventBus,
+    private readonly healthEventBus: HealthEventBus,
     private readonly jwtService: JwtService,
     private readonly usersService: UsersService,
     private readonly configService: ConfigService,
@@ -58,12 +61,14 @@ export class AlertGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     this.subscription = this.alertEventBus.subscribe((event) => this.broadcast(event));
     this.interventionSubscription = this.interventionEventBus.subscribe((event) => this.broadcastIntervention(event));
     this.mutationSubscription = this.mutationEventBus.subscribe((event) => this.broadcastMutation(event));
+    this.healthSubscription = this.healthEventBus.subscribe((event) => this.broadcastHealth(event));
   }
 
   onModuleDestroy(): void {
     this.subscription?.unsubscribe();
     this.interventionSubscription?.unsubscribe();
     this.mutationSubscription?.unsubscribe();
+    this.healthSubscription?.unsubscribe();
   }
 
   async handleConnection(client: Socket): Promise<void> {
@@ -153,6 +158,22 @@ export class AlertGateway implements OnGatewayConnection, OnGatewayDisconnect, O
     );
     const targets = rooms.length > 0 ? rooms.map(roomFor) : [NATIONAL_ROOM];
     if (!targets.includes(NATIONAL_ROOM)) targets.push(NATIONAL_ROOM);
+
+    this.server.to(targets).emit(event.type, event);
+  }
+
+  /**
+   * Diffusion d'un evenement de sante.
+   *
+   * Les donnees de sante sont sensibles : la diffusion reste limitee a
+   * l'organisation du client et a la salle nationale (personnel habilite), et
+   * ne transporte qu'un resume — aucune valeur n'est exposee cote console.
+   */
+  private broadcastHealth(event: HealthRealtimeEvent): void {
+    if (!this.server) return;
+
+    const targets = [NATIONAL_ROOM];
+    if (event.organizationId) targets.push(roomFor(event.organizationId));
 
     this.server.to(targets).emit(event.type, event);
   }

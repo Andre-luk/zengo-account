@@ -90,12 +90,23 @@ Reste à traiter dans l'itération 5 :
 - [ ] Notification dans l'application mobile client en complément du SMS
 - [ ] Synthèse mensuelle des mutations par agence (rattachée au tableau de bord finance)
 
-## Itération 6 — e-Santé connectée
+## Itération 6 — e-Santé connectée ✅ (livrée)
 
-- [ ] Remontée des mesures (tensiomètre, oxymètre, CGM) dans le dossier client
-- [ ] Partage des données avec le personnel de santé (`HEALTH_STAFF`)
-- [ ] Messagerie / appel infirmier, stations d'alerte médicale
-- [ ] Consentement et traçabilité d'accès aux données de santé
+- [x] Remontée des mesures (tensiomètre, oxymètre, glucomètre, température, poids) dans le dossier client
+- [x] Partage des données avec le personnel de santé (`HEALTH_STAFF`)
+- [x] Messagerie / appel infirmier, stations d'alerte médicale
+- [x] Consentement et traçabilité d'accès aux données de santé
+- [x] Qualification automatique des valeurs et alerte MEDICALE sur mesure critique
+- [x] Ingestion MQTT des accessoires connectés (action `health`, token obligatoire)
+- [x] Console web : écran « Santé connectée » (dossier, consentements, traçabilité, demandes de soin)
+
+Détail : [`ESANTE.md`](./ESANTE.md).
+
+Reste à traiter dans l'itération 6 :
+- [ ] Application mobile client dédiée (saisie des mesures, appel infirmier)
+- [ ] Messagerie temps réel avec pièces jointes (ordonnances, photos)
+- [ ] Connecteurs constructeurs (Bluetooth, CGM) et import de campagnes de dépistage
+- [ ] Tableau de bord épidémiologique par zone (agrégats anonymisés)
 
 ## Itération 7 — Applications et industrialisation
 

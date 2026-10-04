@@ -72,7 +72,7 @@ export const SubscriptionsPage = () => {
     status: statusFilter || undefined,
     expiringSoon: expiringOnly || undefined,
   });
-  const clientsQuery = useClients({ limit: 200, status: 'ACTIVE' });
+  const clientsQuery = useClients({ limit: 100, status: 'ACTIVE' });
 
   const totalPages = useMemo(() => {
     const total = listQuery.data?.total ?? 0;

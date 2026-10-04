@@ -16,6 +16,7 @@ import { LoginPage } from '@/routes/LoginPage';
 import { MissionsPage } from '@/routes/MissionsPage';
 import { SubscriptionsPage } from '@/routes/SubscriptionsPage';
 import { MutationsPage } from '@/routes/MutationsPage';
+import { HealthPage } from '@/routes/HealthPage';
 import { OrganizationsPage } from '@/routes/OrganizationsPage';
 import { TariffsPage } from '@/routes/TariffsPage';
 import { UsersPage } from '@/routes/UsersPage';
@@ -116,6 +117,21 @@ export const App = () => {
               ]}
             >
               <MutationsPage />
+            </RequireRole>
+          }
+        />
+        <Route
+          path="/sante"
+          element={
+            <RequireRole
+              roles={[
+                'SUPER_ADMIN',
+                'NATIONAL_DIRECTOR',
+                'TECHNICAL_DIRECTOR',
+                'HEALTH_STAFF',
+              ]}
+            >
+              <HealthPage />
             </RequireRole>
           }
         />

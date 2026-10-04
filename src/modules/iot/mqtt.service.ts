@@ -7,6 +7,7 @@ import { Device } from '@database/entities/device.entity';
 import { AlertsService } from '@modules/alerts/alerts.service';
 import { DeviceCommand, DeviceCommandBus } from '@modules/devices/device-command.bus';
 import { DevicesService } from '@modules/devices/devices.service';
+import { HealthMeasurementsService } from '@modules/healthcare/health-measurements.service';
 import {
   buildTopic,
   DEVICE_PLATFORM,
@@ -50,6 +51,17 @@ interface SafAlertAlarmPayload {
   type?: number;
 }
 
+/** Mesure de sante poussee par un accessoire connecte au kit SafAlert. */
+interface SafAlertHealthPayload {
+  token?: string;
+  metric?: string;
+  value?: number;
+  secondaryValue?: number;
+  diastolic?: number;
+  fasting?: boolean;
+  measuredAt?: string;
+}
+
 /**
  * Passerelle MQTT avec les kits SafAlert Solar G1.
  *
@@ -78,6 +90,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     private readonly configService: ConfigService,
     private readonly devicesService: DevicesService,
     private readonly alertsService: AlertsService,
+    private readonly healthMeasurementsService: HealthMeasurementsService,
     private readonly commandBus: DeviceCommandBus,
   ) {
     this.prefix = this.configService.get<string>('app.mqtt.topicPrefix', 'sg');
@@ -187,6 +200,9 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
         case MqttAction.OTA:
           await this.handleOtaRequest(parsed.serialNumber, payload as { ver?: number });
           break;
+        case MqttAction.HEALTH:
+          await this.handleHealthMeasurement(parsed.serialNumber, payload as SafAlertHealthPayload);
+          break;
         default:
           this.logger.debug(`Action MQTT non geree : ${parsed.action}`);
       }
@@ -292,6 +308,28 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
 
     this.logger.log(`Demande de mise a jour OTA de ${serialNumber} (version ${payload.ver ?? '?'}).`);
     // TODO : publier l'URL de firmware signee lorsque le serveur OTA sera en place.
+  }
+
+  /**
+   * Mesure de sante poussee par un accessoire connecte (e-sante).
+   *
+   * L'authentification du dispositif (token) est exigee : une mesure de sante
+   * modifie le dossier du client et peut declencher une alerte medicale.
+   */
+  private async handleHealthMeasurement(
+    serialNumber: string,
+    payload: SafAlertHealthPayload,
+  ): Promise<void> {
+    const device = await this.requireDevice(serialNumber, payload.token);
+    if (!device) {
+      this.logger.warn(`Mesure de sante refusee : dispositif ${serialNumber} non authentifie.`);
+      return;
+    }
+
+    await this.healthMeasurementsService.ingestFromDevice({
+      serialNumber,
+      payload: payload as unknown as Record<string, unknown>,
+    });
   }
 
   // ---------------------------------------------------------------------------

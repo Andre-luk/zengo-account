@@ -44,6 +44,19 @@ export const queryKeys = {
   mutation: (id: string) => ['mutations', 'detail', id] as const,
   mutationStats: (days: number) => ['mutations', 'stats', days] as const,
   clientMutations: (clientId: string) => ['mutations', 'client', clientId] as const,
+  healthStats: () => ['healthcare', 'stats'] as const,
+  healthMeasurements: (params: Record<string, unknown>) => ['healthcare', 'measurements', params] as const,
+  clientHealth: (clientId: string, emergency = false) =>
+    ['healthcare', 'client', clientId, { emergency }] as const,
+  clientHealthHistory: (clientId: string, params: Record<string, unknown>) =>
+    ['healthcare', 'client', clientId, 'measurements', params] as const,
+  clientHealthConsents: (clientId: string) => ['healthcare', 'client', clientId, 'consents'] as const,
+  clientHealthAccessLogs: (clientId: string) =>
+    ['healthcare', 'client', clientId, 'access-logs'] as const,
+  clientNurseRequests: (clientId: string) => ['healthcare', 'client', clientId, 'nurse-requests'] as const,
+  nurseRequests: (params: Record<string, unknown>) => ['healthcare', 'nurse-requests', params] as const,
+  nurseRequest: (id: string) => ['healthcare', 'nurse-requests', 'detail', id] as const,
+  nurseRequestStats: () => ['healthcare', 'nurse-requests', 'stats'] as const,
   alertStats: (params?: unknown) => ['alerts', 'stats', params ?? {}] as const,
   alertStations: (organizationId: string) => ['alerts', 'stations', organizationId] as const,
   tariffs: (params?: unknown) => ['tariffs', params ?? {}] as const,

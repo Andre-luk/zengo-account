@@ -30,6 +30,13 @@ import type {
   ClientMutation,
   MutationStats,
   IntegrationHorizon,
+  ClientHealthDossier,
+  HealthAccessLog,
+  HealthConsent,
+  HealthMeasurement,
+  HealthcareStats,
+  NurseRequest,
+  NurseRequestStats,
 } from '@/types/api';
 
 export type QueryParams = Record<string, string | number | boolean | undefined>;
@@ -294,4 +301,96 @@ export const useFieldTeams = (params?: QueryParams) =>
   useQuery({
     queryKey: queryKeys.fieldTeams(params),
     queryFn: () => api.get<Paginated<FieldTeam>>('/field-teams', buildQuery(params)),
+  });
+
+// --- e-Sante connectee -------------------------------------------------------
+
+export const useHealthcareStats = () =>
+  useQuery({
+    queryKey: queryKeys.healthStats(),
+    queryFn: () => api.get<HealthcareStats>('/healthcare/stats'),
+    refetchInterval: 60_000,
+  });
+
+export const useHealthMeasurements = (params?: QueryParams) =>
+  useQuery({
+    queryKey: queryKeys.healthMeasurements(params ?? {}),
+    queryFn: () => api.get<Paginated<HealthMeasurement>>('/healthcare/measurements', buildQuery(params)),
+  });
+
+export const useClientHealth = (
+  clientId: string | undefined,
+  options: { emergency?: boolean; enabled?: boolean } = {},
+) =>
+  useQuery({
+    queryKey: queryKeys.clientHealth(clientId ?? '', options.emergency ?? false),
+    queryFn: () =>
+      api.get<ClientHealthDossier>(
+        `/healthcare/clients/${clientId}${options.emergency ? '?emergency=true' : ''}`,
+      ),
+    enabled: Boolean(clientId) && (options.enabled ?? true),
+    retry: false,
+  });
+
+export const useClientHealthHistory = (
+  clientId: string | undefined,
+  params?: QueryParams,
+) =>
+  useQuery({
+    queryKey: queryKeys.clientHealthHistory(clientId ?? '', params ?? {}),
+    queryFn: () =>
+      api.get<Paginated<HealthMeasurement>>(
+        `/healthcare/clients/${clientId}/measurements`,
+        buildQuery(params),
+      ),
+    enabled: Boolean(clientId),
+  });
+
+export const useClientHealthConsents = (clientId: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.clientHealthConsents(clientId ?? ''),
+    queryFn: () => api.get<HealthConsent[]>(`/healthcare/clients/${clientId}/consents`),
+    enabled: Boolean(clientId),
+  });
+
+export const useClientHealthAccessLogs = (
+  clientId: string | undefined,
+  params?: QueryParams,
+) =>
+  useQuery({
+    queryKey: queryKeys.clientHealthAccessLogs(clientId ?? ''),
+    queryFn: () =>
+      api.get<Paginated<HealthAccessLog>>(
+        `/healthcare/clients/${clientId}/access-logs`,
+        buildQuery(params),
+      ),
+    enabled: Boolean(clientId),
+  });
+
+export const useClientNurseRequests = (clientId: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.clientNurseRequests(clientId ?? ''),
+    queryFn: () => api.get<NurseRequest[]>(`/healthcare/clients/${clientId}/nurse-requests`),
+    enabled: Boolean(clientId),
+  });
+
+export const useNurseRequests = (params?: QueryParams) =>
+  useQuery({
+    queryKey: queryKeys.nurseRequests(params ?? {}),
+    queryFn: () => api.get<Paginated<NurseRequest>>('/healthcare/nurse-requests', buildQuery(params)),
+    refetchInterval: 30_000,
+  });
+
+export const useNurseRequest = (id: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.nurseRequest(id ?? ''),
+    queryFn: () => api.get<NurseRequest>(`/healthcare/nurse-requests/${id}`),
+    enabled: Boolean(id),
+  });
+
+export const useNurseRequestStats = () =>
+  useQuery({
+    queryKey: queryKeys.nurseRequestStats(),
+    queryFn: () => api.get<NurseRequestStats>('/healthcare/nurse-requests/stats'),
+    refetchInterval: 60_000,
   });

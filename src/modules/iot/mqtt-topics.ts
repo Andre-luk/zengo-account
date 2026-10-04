@@ -13,6 +13,8 @@ export enum MqttAction {
   CHANGE_ARM_MODE = 'changeArmMode',
   OTA = 'ota',
   OTA_PROGRESS = 'otaProgress',
+  /** Mesure de sante envoyee par un accessoire connecte (tensiometre, oxymetre...). */
+  HEALTH = 'health',
 }
 
 /** Construit un topic `{prefix}/{SN}/{platform}/{action}`. */

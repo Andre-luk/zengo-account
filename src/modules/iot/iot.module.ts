@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
 import { AlertsModule } from '@modules/alerts/alerts.module';
 import { DevicesModule } from '@modules/devices/devices.module';
+import { HealthcareModule } from '@modules/healthcare/healthcare.module';
 import { MqttService } from '@modules/iot/mqtt.service';
 
 /**
@@ -10,11 +11,12 @@ import { MqttService } from '@modules/iot/mqtt.service';
  * Le flux est unidirectionnel au niveau des dependances :
  *   IotModule -> DevicesModule  (heartbeat, sous-appareils, armement)
  *   IotModule -> AlertsModule   (alarmes -> pipeline du ZMC)
+ *   IotModule -> HealthcareModule (mesures de sante des accessoires connectes)
  *   DevicesService -> DeviceCommandBus -> MqttService (commandes sortantes)
  * Aucun de ces modules ne depend de IotModule : le graphe reste acyclique.
  */
 @Module({
-  imports: [ConfigModule, DevicesModule, AlertsModule],
+  imports: [ConfigModule, DevicesModule, AlertsModule, HealthcareModule],
   providers: [MqttService],
   exports: [MqttService],
 })

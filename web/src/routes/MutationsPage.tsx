@@ -73,7 +73,7 @@ export const MutationsPage = () => {
     openOnly: openOnly || undefined,
     search: search || undefined,
   });
-  const clientsQuery = useClients({ limit: 200, status: 'ACTIVE' });
+  const clientsQuery = useClients({ limit: 100, status: 'ACTIVE' });
   const agenciesQuery = useOrganizations({ type: 'AGENCY', limit: 100 });
 
   const totalPages = useMemo(

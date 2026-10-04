@@ -391,6 +391,17 @@ async function main(): Promise<void> {
     password: 'Zengo@2026',
   });
 
+  // E-sante connectee : les mesures et les demandes de soin sont reservees au
+  // personnel de sante, habilite sur tout le territoire.
+  await ensureUser({
+    email: 'sante@zengo.cd',
+    firstName: 'Infirmier',
+    lastName: 'Zengo Sante',
+    organizationId: national.id,
+    role: Role.HEALTH_STAFF,
+    password: 'Zengo@2026',
+  });
+
   await ensureUser({
     email: 'chef.kinshasa@zengo.cd',
     firstName: 'Chef',
@@ -569,6 +580,7 @@ async function main(): Promise<void> {
   console.log('   Responsable platef.: plateforme@zengo.cd / Zengo@2026');
   console.log('   Direction technique: technique@zengo.cd / Zengo@2026');
   console.log('   Controle qualite   : qualite@zengo.cd / Zengo@2026');
+  console.log('   Personnel de sante : sante@zengo.cd / Zengo@2026');
   console.log('   Chef agence Kinsh. : chef.kinshasa@zengo.cd / Zengo@2026');
   console.log('   Technicien         : technicien@zengo.cd / Zengo@2026');
   console.log('   Operateur ZMC      : operateur.zmc@zengo.cd / Zengo@2026');

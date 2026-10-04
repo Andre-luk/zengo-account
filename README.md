@@ -5,12 +5,12 @@
 gestion d'interventions d'urgence, en architecture **multi-tenant**
 (Direction générale → Zones régionales → Agences/PDC → Stations de secours).
 
-> Ce dépôt couvre les **itérations 1 à 5** : socle multi-tenant (comptes, auth/RBAC,
+> Ce dépôt couvre les **itérations 1 à 6** : socle multi-tenant (comptes, auth/RBAC,
 > clients, dispositifs IoT, tarification, audit), la chaîne d'alerte du
 > **Zengo Monitoring Center** (pipeline d'alertes, appel vocal IA multilingue,
 > affectation aux stations, temporisation 5 min, diffusion temps réel), les
-> **interventions terrain**, les **abonnements & Mobile Money** et les
-> **mutations géographiques** des dossiers clients.
+> **interventions terrain**, les **abonnements & Mobile Money**, les
+> **mutations géographiques** des dossiers clients et l'**e-santé connectée**.
 
 ---
 
@@ -110,7 +110,8 @@ npm --prefix web run build      # type-check + build de la console
 | `npm run smoke:interventions` | Test de fumée interventions terrain (52 contrôles) |
 | `npm run smoke:subscriptions` | Test de fumée abonnements & Mobile Money (51 contrôles) |
 | `npm run smoke:mutations` | Test de fumée mutations géographiques (46 contrôles) |
-| `npm run smoke:all` | Socle + alertes + interventions + abonnements + mutations (269 contrôles) |
+| `npm run smoke:health` | Test de fumée e-santé connectée (59 contrôles) |
+| `npm run smoke:all` | Socle + alertes + interventions + abonnements + mutations + e-santé (328 contrôles) |
 | `npm run mqtt:broker` | Broker MQTT embarqué (aedes) pour le développement |
 | `npm run seed` | Jeu de données initial (idempotent) |
 | `npm run db:pg:start` / `db:pg:stop` | PostgreSQL embarqué de développement |
@@ -198,7 +199,7 @@ Détail complet : [`docs/ALERTES-ZMC.md`](docs/ALERTES-ZMC.md).
 │   ├── database/      # entités TypeORM, seeds
 │   └── modules/       # auth, users, organizations, clients, devices, tariffs,
 │                      # alerts, telephony, realtime, iot, interventions,
-│                      # subscriptions, mutations, audit, health
+│                      # subscriptions, mutations, healthcare, audit, health
 ├── web/               # console web React + Vite (opérateurs, supervision, gestion)
 ├── docs/
 │   ├── ARCHITECTURE.md
@@ -208,6 +209,7 @@ Détail complet : [`docs/ALERTES-ZMC.md`](docs/ALERTES-ZMC.md).
 │   ├── RISQUES.md
 │   ├── ABONNEMENTS.md
 │   ├── MUTATIONS.md
+│   ├── ESANTE.md
 │   ├── MQTT-SAFALERT.md
 │   └── ROADMAP.md
 ├── scripts/           # PostgreSQL embarqué, broker MQTT, tests de fumée, info base
@@ -226,6 +228,7 @@ Détail complet : [`docs/ALERTES-ZMC.md`](docs/ALERTES-ZMC.md).
 - [`docs/INTERVENTIONS.md`](docs/INTERVENTIONS.md) — équipes terrain, affectation, suivi GPS.
 - [`docs/ABONNEMENTS.md`](docs/ABONNEMENTS.md) — codes d'abonnement, Mobile Money, caisse.
 - [`docs/MUTATIONS.md`](docs/MUTATIONS.md) — mutations géographiques, double validation, suivi d'intégration.
+- [`docs/ESANTE.md`](docs/ESANTE.md) — mesures de santé, consentement et traçabilité, demandes de soin.
 
 ---
 

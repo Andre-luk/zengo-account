@@ -23,5 +23,9 @@ export enum AuditAction {
   DEVICE_DISARM = 'DEVICE_DISARM',
   CLIENT_MUTATION = 'CLIENT_MUTATION',
   SUBSCRIPTION_ACTIVATED = 'SUBSCRIPTION_ACTIVATED',
+  /** Acces ou modification de donnees de sante (tracabilite renforcee). */
+  HEALTH_DATA_ACCESS = 'HEALTH_DATA_ACCESS',
+  /** Demande de soin / appel infirmier. */
+  NURSE_REQUEST = 'NURSE_REQUEST',
   PERMISSION_DENIED = 'PERMISSION_DENIED',
 }

@@ -292,9 +292,177 @@ export interface MutationStats {
   integrationLate: number;
 }
 
+// --- e-Sante connectee -------------------------------------------------------
+
+export type HealthMetric =
+  | 'BLOOD_PRESSURE'
+  | 'HEART_RATE'
+  | 'SPO2'
+  | 'BLOOD_GLUCOSE'
+  | 'TEMPERATURE'
+  | 'WEIGHT';
+
+export type HealthReadingStatus = 'NORMAL' | 'WATCH' | 'CRITICAL';
+
+export type HealthMeasurementSource = 'DEVICE' | 'MANUAL' | 'CLIENT_APP' | 'IMPORT';
+
+export type HealthTrend = 'IMPROVING' | 'WORSENING' | 'STABLE' | 'INSUFFICIENT';
+
+export type HealthConsentScope = 'DATA_SHARING' | 'NURSE_CONTACT' | 'EMERGENCY_DISCLOSURE';
+
+export type HealthConsentStatus = 'GRANTED' | 'REVOKED' | 'EXPIRED';
+
+export type HealthConsentChannel = 'CLIENT_APP' | 'SMS' | 'PAPER' | 'CALL_CENTER';
+
+export type HealthAccessAction =
+  | 'VIEW'
+  | 'EXPORT'
+  | 'SHARE'
+  | 'CONSENT_GRANTED'
+  | 'CONSENT_REVOKED'
+  | 'EMERGENCY'
+  | 'ERASED';
+
+export type NurseRequestStatus =
+  | 'REQUESTED'
+  | 'ACCEPTED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'CANCELLED';
+
+export type NurseRequestPriority = 'ROUTINE' | 'URGENT' | 'EMERGENCY';
+
+export interface HealthMeasurement {
+  id: string;
+  metric: HealthMetric;
+  metricLabel: string;
+  value: number;
+  secondaryValue: number | null;
+  unit: string;
+  status: HealthReadingStatus;
+  label: string;
+  advice: string;
+  fasting: boolean;
+  source: HealthMeasurementSource;
+  measuredAt: string;
+  deviceSerial: string | null;
+  recordedByLabel: string | null;
+  note: string | null;
+  alertId: string | null;
+}
+
+export interface HealthVital {
+  metric: HealthMetric;
+  value: number;
+  secondaryValue: number | null;
+  unit: string;
+  measuredAt: string;
+  status: HealthReadingStatus;
+  label: string;
+  advice: string;
+  trend: HealthTrend;
+  sampleCount: number;
+}
+
+export interface HealthConsent {
+  id: string;
+  scope: HealthConsentScope;
+  status: HealthConsentStatus;
+  channel: HealthConsentChannel;
+  grantedAt: string;
+  grantedByLabel: string | null;
+  expiresAt: string | null;
+  revokedAt: string | null;
+  revokedReason: string | null;
+  statement: string | null;
+  active: boolean;
+}
+
+export interface HealthAccessLog {
+  id: string;
+  action: HealthAccessAction;
+  scope: HealthConsentScope | null;
+  actorLabel: string;
+  actorRole: Role | null;
+  reason: string;
+  detail: string | null;
+  occurredAt: string;
+}
+
+export interface ClientHealthDossier {
+  client: {
+    id: string;
+    zengoId: string;
+    fullName: string;
+    primaryPhone: string;
+    organizationId: string;
+    organizationName: string | null;
+  };
+  vitals: HealthVital[];
+  counts: Record<HealthReadingStatus, number>;
+  sampleSize: number;
+  lastReadingAt: string | null;
+  criticalReadings: HealthMeasurement[];
+}
+
+export interface NurseRequestMessage {
+  authorId: string | null;
+  authorLabel: string;
+  authorSide: string;
+  body: string;
+  at: string;
+}
+
+export interface NurseRequest {
+  id: string;
+  reference: string;
+  status: NurseRequestStatus;
+  priority: NurseRequestPriority;
+  reason: string;
+  symptoms: string | null;
+  client: { id: string; zengoId: string; fullName: string; primaryPhone: string };
+  organizationId: string;
+  requestedByLabel: string | null;
+  createdAt: string;
+  acceptedAt: string | null;
+  assignedToLabel: string | null;
+  completedAt: string | null;
+  cancelledAt: string | null;
+  resolution: string | null;
+  advice: string | null;
+  alertId: string | null;
+  messages: NurseRequestMessage[];
+  responseDueAt: string;
+  late: boolean;
+}
+
+export interface HealthStats {
+  totalMeasurements: number;
+  byStatus: Record<HealthReadingStatus, number>;
+  byMetric: { metric: HealthMetric; label: string; total: number }[];
+  criticalLast24h: number;
+  clientsFollowed: number;
+  criticalClients: number;
+  sourceSplit: { source: HealthMeasurementSource; total: number }[];
+}
+
+export interface NurseRequestStats {
+  total: number;
+  byStatus: { status: NurseRequestStatus; total: number }[];
+  byPriority: { priority: NurseRequestPriority; total: number }[];
+  open: number;
+  late: number;
+  averageResponseMinutes: number | null;
+  completedLast30Days: number;
+}
+
+export interface HealthcareStats {
+  measurements: HealthStats;
+  nurseRequests: NurseRequestStats;
+}
+
 export type Role =
-  | 'SUPER_ADMIN'
-  | 'NATIONAL_DIRECTOR'
+  | 'SUPER_ADMIN'  | 'NATIONAL_DIRECTOR'
   | 'TECHNICAL_DIRECTOR'
   | 'PLATFORM_MANAGER'
   | 'DAF'
