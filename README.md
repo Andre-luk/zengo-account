@@ -75,6 +75,20 @@ npm run smoke                   # parcours de bout en bout (API déjà lancée)
 npm --prefix web run build      # type-check + build de la console
 ```
 
+### 6. Déclencher une intrusion (démonstration)
+
+```bash
+npm run mqtt:broker                       # terminal 1 : broker MQTT local
+npm run start:prod                        # terminal 2 : API (MQTT_ENABLED=true)
+npm run demo:alarme                       # terminal 3 : une intrusion reelle via MQTT
+npm run demo:alarme -- --dtmf 1           #   ... et le client dit « ce n'est pas moi »
+npm run demo:alarme -- --dtmf 2           #   ... et le client dit « c'est moi »
+npm run demo:intrusion                    # parcours complet commente, etape par etape
+```
+
+Le pas-à-pas détaillé, les variantes et l'interprétation des résultats sont
+ décrits dans [`docs/SIMULATION-INTRUSION.md`](docs/SIMULATION-INTRUSION.md).
+
 ---
 
 ## Comptes créés par le seed
@@ -84,6 +98,11 @@ npm --prefix web run build      # type-check + build de la console
 | Super admin (Direction générale) | `admin@zengo.cd` | `Zengo@2026` |
 | Responsable plateforme (création clients) | `plateforme@zengo.cd` | `Zengo@2026` |
 | Direction technique | `technique@zengo.cd` | `Zengo@2026` |
+| Contrôle qualité | `qualite@zengo.cd` | `Zengo@2026` |
+| DAF (tarifs et taux de change) | `daf@zengo.cd` | `Zengo@2026` |
+| Comptabilité (caisse, encaissements) | `compta@zengo.cd` | `Zengo@2026` |
+| Personnel de santé (dossiers médicaux) | `sante@zengo.cd` | `Zengo@2026` |
+| Chef de zone Lubumbashi | `zone.lubumbashi@zengo.cd` | `Zengo@2026` |
 | Chef d'agence Kinshasa | `chef.kinshasa@zengo.cd` | `Zengo@2026` |
 | Technicien installateur | `technicien@zengo.cd` | `Zengo@2026` |
 | Opérateur ZMC | `operateur.zmc@zengo.cd` | `Zengo@2026` |
@@ -113,6 +132,10 @@ npm --prefix web run build      # type-check + build de la console
 | `npm run smoke:health` | Test de fumée e-santé connectée (59 contrôles) |
 | `npm run smoke:all` | Socle + alertes + interventions + abonnements + mutations + e-santé (328 contrôles) |
 | `npm run mqtt:broker` | Broker MQTT embarqué (aedes) pour le développement |
+| `npm run demo:alarme` | Déclenche une intrusion (MQTT) : `-- --dtmf 1`, `-- --capteur PIR` |
+| `npm run demo:intrusion` | Parcours d'intrusion complet, commenté étape par étape |
+| `npm run check:accounts` | Connexion et vérification des droits des 13 comptes |
+| `npm run db:clean` | Purge des données de test (`-- --dry-run` pour simuler) |
 | `npm run seed` | Jeu de données initial (idempotent) |
 | `npm run db:pg:start` / `db:pg:stop` | PostgreSQL embarqué de développement |
 | `npm run db:info` | État des tables et volumétrie |

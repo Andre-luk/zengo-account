@@ -17,6 +17,13 @@ import {
   SERVER_PLATFORM,
 } from '@modules/iot/mqtt-topics';
 
+/**
+ * Periode de surveillance de la liaison MQTT : si la connexion reste muette
+ * plus de `MQTT_REVIVE_AFTER_MS`, le client est recree de zero.
+ */
+const MQTT_HEALTH_INTERVAL_MS = 10_000;
+const MQTT_REVIVE_AFTER_MS = 20_000;
+
 interface SafAlertAuthPayload {
   sign?: string;
 }
@@ -83,6 +90,9 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(MqttService.name);
   private client: MqttClient | null = null;
   private commandSubscription: Subscription | null = null;
+  private healthTimer: NodeJS.Timeout | null = null;
+  /** Horodatage du debut de la coupure courante, pour ne pas boucler trop vite. */
+  private silentSince: number | null = null;
   private readonly prefix: string;
   private readonly enabled: boolean;
 
@@ -105,6 +115,18 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
       return;
     }
 
+    this.openConnection();
+
+    // Surveillance de la liaison : un broker qui disparait puis revient peut
+    // laisser le client MQTT muet. On verifie donc regulierement l'etat reel et
+    // on recree la connexion au besoin : sans cela, le ZMC cesserait de recevoir
+    // les alarmes sans que personne ne s'en apercoive.
+    this.healthTimer = setInterval(() => this.reviveConnection(), MQTT_HEALTH_INTERVAL_MS);
+    this.healthTimer.unref?.();
+  }
+
+  /** Ouvre la connexion au broker et branche ses gestionnaires d'evenements. */
+  private openConnection(): void {
     const url = this.configService.get<string>('app.mqtt.url', 'mqtt://localhost:1883');
     const username = this.configService.get<string>('app.mqtt.username');
     const password = this.configService.get<string>('app.mqtt.password');
@@ -114,6 +136,7 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
       password: password || undefined,
       clean: true,
       reconnectPeriod: 5_000,
+      connectTimeout: 10_000,
     });
 
     this.client.on('connect', () => {
@@ -130,7 +153,35 @@ export class MqttService implements OnModuleInit, OnModuleDestroy {
     this.client.on('error', (error) => this.logger.error(`Erreur MQTT : ${error.message}`));
   }
 
+  /**
+   * Verifie la liaison et la retablit si elle est muette depuis trop longtemps.
+   *
+   * On ne se fie pas au drapeau `reconnecting` du client : en pratique il peut
+   * rester arme alors que la connexion ne revient jamais.
+   */
+  private reviveConnection(): void {
+    const client = this.client;
+    if (!client) return;
+
+    if (client.connected) {
+      this.silentSince = null;
+      return;
+    }
+
+    this.silentSince ??= Date.now();
+    if (Date.now() - this.silentSince < MQTT_REVIVE_AFTER_MS) return;
+
+    this.logger.warn('Liaison MQTT interrompue : recreation du client MQTT.');
+    this.silentSince = null;
+    client.removeAllListeners();
+    client.end(true);
+    this.client = null;
+    this.openConnection();
+  }
+
   onModuleDestroy(): void {
+    if (this.healthTimer) clearInterval(this.healthTimer);
+    this.healthTimer = null;
     this.commandSubscription?.unsubscribe();
     this.client?.end(true);
   }

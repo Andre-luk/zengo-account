@@ -225,7 +225,11 @@ export class AlertLifecycleService {
     dispatch.respondedAt = new Date();
     dispatch.respondedById = actor?.id ?? null;
     if (note !== undefined) dispatch.note = note;
-    return this.alertDispatchRepository.save(dispatch);
+    // `save()` sur une affectation chargee avec sa station reconstruit la ligne
+    // et peut remettre `alert_id` a NULL (piege des relations TypeORM). On ne
+    // touche donc que les colonnes mappees, comme le reste du module.
+    await saveColumns(this.alertDispatchRepository, dispatch);
+    return dispatch;
   }
 
   async loadDispatch(alertId: string, dispatchId: string): Promise<AlertDispatch | null> {
@@ -310,7 +314,7 @@ export class AlertLifecycleService {
 
     await this.recordEvent(saved.id, AlertEventType.ESCALATED, {
       message: options.automatic
-        ? `Escalade automatique : aucune action dans le delai imparti. Diffusion a ${stations.length} station(s).`
+        ? `Escalade automatique : ${options.reason} Diffusion a ${stations.length} station(s).`
         : `Escalade manuelle : ${options.reason}`,
       actor: options.actor ?? null,
       data: { level, stationCount: stations.length, automatic: Boolean(options.automatic) },

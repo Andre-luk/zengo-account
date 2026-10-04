@@ -380,6 +380,37 @@ async function main(): Promise<void> {
     password: 'Zengo@2026',
   });
 
+  // Direction Administrative & Financiere : c'est elle qui met a jour les taux
+  // de change et les prix (cahier des charges, « droits de modification »).
+  await ensureUser({
+    email: 'daf@zengo.cd',
+    firstName: 'Directrice',
+    lastName: 'Administrative Financiere',
+    organizationId: national.id,
+    role: Role.DAF,
+    password: 'Zengo@2026',
+  });
+
+  // Comptabilite : encaissements, abonnements, rapprochement de caisse.
+  await ensureUser({
+    email: 'compta@zengo.cd',
+    firstName: 'Comptable',
+    lastName: 'Zengo',
+    organizationId: national.id,
+    role: Role.ACCOUNTANT,
+    password: 'Zengo@2026',
+  });
+
+  // Chef de zone regionale : supervise toutes les agences de sa zone.
+  await ensureUser({
+    email: 'zone.lubumbashi@zengo.cd',
+    firstName: 'Chef',
+    lastName: 'Zone Lubumbashi',
+    organizationId: regions.LUB.id,
+    role: Role.REGION_MANAGER,
+    password: 'Zengo@2026',
+  });
+
   // Seconde validation des mutations geographiques : le controle qualite doit
   // etre porte par un compte distinct de celui qui demande le transfert.
   await ensureUser({
@@ -581,6 +612,9 @@ async function main(): Promise<void> {
   console.log('   Direction technique: technique@zengo.cd / Zengo@2026');
   console.log('   Controle qualite   : qualite@zengo.cd / Zengo@2026');
   console.log('   Personnel de sante : sante@zengo.cd / Zengo@2026');
+  console.log('   DAF (tarifs/taux)  : daf@zengo.cd / Zengo@2026');
+  console.log('   Comptabilite       : compta@zengo.cd / Zengo@2026');
+  console.log('   Chef zone Lubumb.  : zone.lubumbashi@zengo.cd / Zengo@2026');
   console.log('   Chef agence Kinsh. : chef.kinshasa@zengo.cd / Zengo@2026');
   console.log('   Technicien         : technicien@zengo.cd / Zengo@2026');
   console.log('   Operateur ZMC      : operateur.zmc@zengo.cd / Zengo@2026');

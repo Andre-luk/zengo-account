@@ -240,15 +240,18 @@ export class AlertVoiceCallService implements OnModuleInit, OnModuleDestroy {
     const alert = await this.alertLifecycle.loadAlertOrFail(saved.alertId);
     const updated = await this.alertLifecycle.applyClientConfirmation(alert, saved.outcome ?? VoiceCallOutcome.PARTIAL);
 
-    await this.alertLifecycle.recordEvent(updated.id, AlertEventType.VOICE_CALL_COMPLETED, {
-      message:
-        saved.detectedIntent === 'not_me'
-          ? "Le client a indique que le declenchement n'est pas de son fait."
-          : saved.detectedIntent === 'it_is_me'
-            ? "Le client a confirme etre a l'origine du declenchement ; conseil de desarmement donne."
-            : `Reponse du client non exploitable (touche=${saved.dtmfDigit ?? '-'}).`,
-      data: { dtmf: saved.dtmfDigit, intent: saved.detectedIntent, outcome: saved.outcome },
-    });
+    // Les deux reponses exploitables sont deja journalisees par
+    // applyClientConfirmation : on n'ajoute un evenement que pour une reponse
+    // inexploitable, afin de ne pas doubler la chronologie du dossier.
+    if (
+      saved.outcome !== VoiceCallOutcome.INTRUSION_CONFIRMED &&
+      saved.outcome !== VoiceCallOutcome.CONFIRMED_BY_CLIENT
+    ) {
+      await this.alertLifecycle.recordEvent(updated.id, AlertEventType.VOICE_CALL_COMPLETED, {
+        message: `Reponse du client non exploitable (touche=${saved.dtmfDigit ?? '-'}).`,
+        data: { dtmf: saved.dtmfDigit, intent: saved.detectedIntent, outcome: saved.outcome },
+      });
+    }
 
     this.alertLifecycle.publish('voice_call.updated', updated, {
       voiceCallId: saved.id,
