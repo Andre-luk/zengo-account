@@ -27,3 +27,18 @@ export const decodeSubDeviceState = (state: string): DecodedSubDeviceState => {
     open: bits[SubDeviceStateBit.OPEN] === '1',
   };
 };
+
+/** Anomalies adressables par le banc d'essai (l'etat hors ligne vient du heartbeat lui-meme). */
+export type SubDeviceAnomaly = 'NORMAL' | 'OPEN' | 'TAMPER' | 'LOW_BATTERY';
+
+/**
+ * Construit le champ `state` a partir d'un etat lisible : operation inverse de
+ * `decodeSubDeviceState`, utilisee par le banc d'essai du materiel.
+ */
+export const encodeSubDeviceState = (state: SubDeviceAnomaly): string => {
+  const bits = Array.from({ length: 8 }, () => '0');
+  if (state === 'TAMPER') bits[SubDeviceStateBit.TAMPER] = '1';
+  if (state === 'LOW_BATTERY') bits[SubDeviceStateBit.LOW_BATTERY] = '1';
+  if (state === 'OPEN') bits[SubDeviceStateBit.OPEN] = '1';
+  return bits.join('');
+};

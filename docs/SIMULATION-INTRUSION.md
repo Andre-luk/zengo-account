@@ -6,7 +6,38 @@ Il sert de guide de démonstration devant un client.
 
 ---
 
-## 1. Les deux commandes à retenir
+## 1. La façon la plus simple : le banc d'essai de la console
+
+Plus besoin de terminal : la console contient un écran **Banc d'essai**
+(`/simulation`) qui joue le rôle du kit installé chez un client.
+
+1. Se connecter avec `operateur.zmc@zengo.cd` / `Zengo@2026`.
+2. Menu **Banc d'essai** (section Supervision).
+3. Choisir le kit dans la liste déroulante (le kit de démonstration est
+   rattaché au client `ZGO-LUBAG01-000001`).
+4. **Kit en ligne (heartbeat)** : la centrale remonte, l'état des capteurs
+   s'affiche (normal, ouvert, sabotage, batterie faible).
+5. **Armer (absence)** : le kit annonce son mode d'armement.
+6. **Déclencher un capteur** : porte, mouvement, fumée, gaz, eau ou bouton
+   d'alerte — un clic suffit.
+7. Le dossier apparaît en dessous : référence, nature, gravité, appel de
+   vérification, chronologie.
+8. **Répondre à l'appel** : « Touche 1 — ce n'est pas moi » (escalade
+   immédiate), « Touche 2 — c'est moi » (fausse alerte) ou « Ne pas répondre ».
+
+L'alerte créée apparaît en parallèle dans l'écran **Alertes** : l'opérateur
+peut la prendre en charge, engager une station et la clôturer, comme pour un
+déclenchement réel.
+
+Rien n'est simulé côté serveur : l'écran appelle les mêmes fonctions que la
+passerelle MQTT (`ingestDeviceAlarm`), donc le type d'alerte, la source
+`SENSOR`, l'appel vocal, l'escalade et la chronologie sont ceux d'un vrai
+matériel. Le module est réservé aux postes de supervision et se désactive
+automatiquement en production (`SIMULATION_ENABLED`, `NODE_ENV=production`).
+
+---
+
+## 2. Les commandes, pour les tests et l'automatisation
 
 | Commande | Ce qu'elle fait | Durée |
 |---|---|---|
@@ -25,7 +56,7 @@ npm run demo:alarme -- --api           # sans MQTT : l'alerte est créée par l'
 
 ---
 
-## 2. Prérequis (une seule fois par session)
+## 3. Prérequis (une seule fois par session)
 
 Trois terminaux, dans l'ordre :
 
@@ -139,7 +170,12 @@ npm run demo:intrusion -- --watchdog 60 --sans-appel
 **Le script dit « MQTT inactif » et crée l'alerte par l'API ?**
 L'API tourne sans passerelle MQTT. Vérifiez `MQTT_ENABLED=true` dans `.env`,
 lancez `npm run mqtt:broker`, puis relancez l'API. Le déclenchement fonctionne
-quand même (chemin API), mais sans le parcours matériel.
+quand même (chemin API), mais sans le parcours matériel. Le banc d'essai de la
+console, lui, ne dépend pas du broker.
+
+**Le banc d'essai affiche « indisponible » ?**
+Le module est désactivé : `SIMULATION_ENABLED=true` dans `.env`, puis relancez
+l'API. Il est aussi refusé aux comptes clients (403).
 
 **Aucune nouvelle alerte n'apparaît ?**
 Le déclenchement a probablement été **regroupé** avec le précédent : un même

@@ -18,6 +18,7 @@ import { SubscriptionsPage } from '@/routes/SubscriptionsPage';
 import { MutationsPage } from '@/routes/MutationsPage';
 import { HealthPage } from '@/routes/HealthPage';
 import { OrganizationsPage } from '@/routes/OrganizationsPage';
+import { SimulationPage } from '@/routes/SimulationPage';
 import { TariffsPage } from '@/routes/TariffsPage';
 import { UsersPage } from '@/routes/UsersPage';
 import type { Role } from '@/types/api';
@@ -137,6 +138,23 @@ export const App = () => {
         />
         <Route path="/clients" element={<ClientsPage />} />
         <Route path="/clients/:clientId" element={<ClientDetailPage />} />
+        <Route
+          path="/simulation"
+          element={
+            <RequireRole
+              roles={[
+                'SUPER_ADMIN',
+                'NATIONAL_DIRECTOR',
+                'TECHNICAL_DIRECTOR',
+                'PLATFORM_MANAGER',
+                'OPERATOR',
+                'SUPERVISOR',
+              ]}
+            >
+              <SimulationPage />
+            </RequireRole>
+          }
+        />
         <Route path="/dispositifs" element={<DevicesPage />} />
         <Route path="/dispositifs/:deviceId" element={<DeviceDetailPage />} />
         <Route

@@ -23,6 +23,7 @@ import { SubscriptionsModule } from '@modules/subscriptions/subscriptions.module
 import { IotModule } from '@modules/iot/iot.module';
 import { OrganizationsModule } from '@modules/organizations/organizations.module';
 import { RealtimeModule } from '@modules/realtime/realtime.module';
+import { SimulationModule } from '@modules/simulation/simulation.module';
 import { TariffsModule } from '@modules/tariffs/tariffs.module';
 import { TelephonyModule } from '@modules/telephony/telephony.module';
 import { UsersModule } from '@modules/users/users.module';
@@ -65,6 +66,7 @@ import { UsersModule } from '@modules/users/users.module';
     SubscriptionsModule,
     ClientMutationsModule,
     HealthcareModule,
+    SimulationModule,
     IotModule,
     RealtimeModule,
     HealthModule,

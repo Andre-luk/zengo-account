@@ -7,6 +7,7 @@ import {
   KeyRound,
   LayoutDashboard,
   LifeBuoy,
+  RadioTower,
   ScrollText,
   ShieldCheck,
   Siren,
@@ -47,6 +48,14 @@ export const NAV_ITEMS: NavItem[] = [
     icon: Siren,
     group: 'supervision',
     description: 'Equipes engagees, suivi GPS et rapports',
+  },
+  {
+    to: '/simulation',
+    label: "Banc d'essai",
+    icon: RadioTower,
+    roles: ['SUPER_ADMIN', 'NATIONAL_DIRECTOR', 'TECHNICAL_DIRECTOR', 'PLATFORM_MANAGER', 'OPERATOR', 'SUPERVISOR'],
+    group: 'supervision',
+    description: 'Jouer un kit installé : déclencher une intrusion et répondre à l appel',
   },
   {
     to: '/abonnements',

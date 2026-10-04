@@ -38,7 +38,8 @@
     "demo:alarme": "node scripts/declencher-alarme.mjs",
     "demo:intrusion": "node scripts/simulate-intrusion.mjs",
     "db:clean": "node scripts/cleanup-test-data.mjs",
-    "check:accounts": "node scripts/check-accounts.mjs"
+    "check:accounts": "node scripts/check-accounts.mjs",
+    "smoke:simulation": "node scripts/smoke-simulation.mjs"
   },
   "dependencies": {
     "@nestjs/common": "^10.4.15",

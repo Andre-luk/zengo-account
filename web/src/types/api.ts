@@ -893,3 +893,56 @@ export interface RealtimeEvent {
   occurredAt: string;
   payload?: Record<string, unknown>;
 }
+
+// --- Banc d'essai du matériel (simulation) -----------------------------------
+
+/** Scénarios proposés par le banc d'essai : un libellé clair -> un capteur. */
+export type SimulationScenario =
+  | 'INTRUSION_DOOR'
+  | 'INTRUSION_MOTION'
+  | 'FIRE_SMOKE'
+  | 'GAS_LEAK'
+  | 'WATER_LEAK'
+  | 'PANIC_BUTTON';
+
+/** États de capteur simulables depuis la console. */
+export type SimulatedDeviceState = 'NORMAL' | 'OPEN' | 'TAMPER' | 'LOW_BATTERY';
+
+/** Capteur d'un kit, tel que le banc d'essai le présente. */
+export interface SimulatedSubDevice {
+  id: string;
+  subId: string;
+  code: SubDeviceCode;
+  name: string;
+  areaName: string | null;
+  state: string;
+  decoded: {
+    raw: string;
+    offline: boolean;
+    tamper: boolean;
+    lowBattery: boolean;
+    open: boolean;
+  };
+  lastSeenAt: string | null;
+}
+
+/** Kit SafAlert jouable depuis la console (banc d'essai du matériel). */
+export interface SimulationKit {
+  id: string;
+  serialNumber: string;
+  status: DeviceStatus;
+  armMode: ArmMode;
+  firmwareVersion: number | null;
+  lastSeenAt: string | null;
+  lastHeartbeatAt: string | null;
+  client: {
+    id: string;
+    zengoId: string;
+    fullName: string;
+    phone: string | null;
+    address: string | null;
+    city: string | null;
+  } | null;
+  organizationName: string | null;
+  subDevices: SimulatedSubDevice[];
+}

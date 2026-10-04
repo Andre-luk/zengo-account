@@ -107,8 +107,16 @@ export class AlertsService {
   /**
    * Ingestion d'une alarme transmise par une centrale SafAlert (MQTT).
    * Retourne l'alerte creee ou regroupee.
+   *
+   * `options.autoVoiceCall` permet au banc d'essai de forcer ou d'inhiber
+   * l'appel de verification ; laisse a `undefined`, la regle du projet
+   * s'applique (parametre `ALERT_AUTO_VOICE_CALL`).
    */
-  async ingestDeviceAlarm(device: Device, payload: DeviceAlarmPayload): Promise<Alert> {
+  async ingestDeviceAlarm(
+    device: Device,
+    payload: DeviceAlarmPayload,
+    options: { autoVoiceCall?: boolean } = {},
+  ): Promise<Alert> {
     const subDevice = payload.id
       ? await this.subDeviceRepository.findOne({ where: { deviceId: device.id, subId: payload.id } })
       : null;
@@ -124,6 +132,7 @@ export class AlertsService {
       subDeviceCode: subDevice?.code ?? null,
       rawType: payload.type ?? null,
       triggerMessage: payload.message ?? payload.name ?? null,
+      autoVoiceCall: options.autoVoiceCall,
       metadata: { deviceSerial: device.serialNumber, subDeviceLabel: subDevice?.name ?? payload.name ?? null },
     });
   }

@@ -37,6 +37,7 @@ import type {
   HealthcareStats,
   NurseRequest,
   NurseRequestStats,
+  SimulationKit,
 } from '@/types/api';
 
 export type QueryParams = Record<string, string | number | boolean | undefined>;
@@ -393,4 +394,20 @@ export const useNurseRequestStats = () =>
     queryKey: queryKeys.nurseRequestStats(),
     queryFn: () => api.get<NurseRequestStats>('/healthcare/nurse-requests/stats'),
     refetchInterval: 60_000,
+  });
+
+/** Kits SafAlert jouables depuis le banc d'essai du matériel. */
+export const useSimulationKits = (params?: QueryParams) =>
+  useQuery({
+    queryKey: queryKeys.simulationKits(params),
+    queryFn: () => api.get<SimulationKit[]>('/simulation/kits', buildQuery(params)),
+    staleTime: 5_000,
+  });
+
+export const useSimulationKit = (id: string | undefined) =>
+  useQuery({
+    queryKey: queryKeys.simulationKit(id ?? ''),
+    queryFn: () => api.get<SimulationKit>(`/simulation/kits/${id}`),
+    enabled: Boolean(id),
+    staleTime: 3_000,
   });

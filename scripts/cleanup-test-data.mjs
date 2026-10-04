@@ -54,8 +54,8 @@ const client = new Client({
 
 /** Comptes crees par les tests : prefixe smoke./qa. ou nom fictif. */
 const TEST_EMAIL_PATTERN = '^(smoke\\.|qa\\.)|@example\\.cd$';
-const TEST_CLIENT_NAME = 'Smoke Testeur';
-
+const TEST_CLIENT_NAME = 'Smoke Testeur';/** Kits enregistres par les suites de fumee (voir scripts/smoke-*.mjs). */
+const TEST_DEVICE_SERIAL_PREFIX = 'SMOKE';
 const count = async (sql, params = []) => {
   const { rows } = await client.query(sql, params);
   return Number(rows[0]?.total ?? 0);
@@ -111,9 +111,15 @@ if (doClients) {
         `delete from users where id = any($1::uuid[])`,
         [testUsers.rows.map((row) => row.id)],
       );
+      // Kits crees par les suites de fumee : le dossier client a disparu, le
+      // dispositif resterait orphelin et polluerait les ecrans de selection.
+      const deletedDevices = await client.query(`delete from devices where serial_number ilike $1`, [
+        `${TEST_DEVICE_SERIAL_PREFIX}%`,
+      ]);
       await client.query('commit');
       console.log(
-        `   -> supprime : ${deletedClients.rowCount} dossier(s) client, ${deletedUsers.rowCount} compte(s) utilisateur`,
+        `   -> supprime : ${deletedClients.rowCount} dossier(s) client, ${deletedUsers.rowCount} compte(s) utilisateur, ` +
+          `${deletedDevices.rowCount} dispositif(s) de test`,
       );
     } catch (error) {
       await client.query('rollback');

@@ -58,6 +58,14 @@ export default registerAs('app', () => ({
     topicPrefix: process.env.MQTT_TOPIC_PREFIX ?? 'sg',
   },
 
+  simulation: {
+    /**
+     * Banc d'essai du materiel (console de demonstration) : permet de jouer un
+     * kit SafAlert depuis l'interface. Active par defaut hors production.
+     */
+    enabled: toBool(process.env.SIMULATION_ENABLED, (process.env.NODE_ENV ?? 'development') !== 'production'),
+  },
+
   alerts: {
     /** Temporisation du CDC : 5 minutes sans action avant escalade. */
     escalationSeconds: toInt(process.env.ALERT_ESCALATION_SECONDS, 300),

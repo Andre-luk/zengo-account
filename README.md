@@ -77,6 +77,13 @@ npm --prefix web run build      # type-check + build de la console
 
 ### 6. Déclencher une intrusion (démonstration)
 
+**Depuis la console** (recommandé devant un public) : se connecter avec
+`operateur.zmc@zengo.cd` / `Zengo@2026`, puis ouvrir l'écran **Banc d'essai**
+(`http://127.0.0.1:5173/simulation`) : choisir le kit, le mettre en ligne,
+l'armer, déclencher un capteur et répondre à l'appel. Aucun broker n'est requis.
+
+**En ligne de commande** (tests et automatisation) :
+
 ```bash
 npm run mqtt:broker                       # terminal 1 : broker MQTT local
 npm run start:prod                        # terminal 2 : API (MQTT_ENABLED=true)
@@ -87,7 +94,7 @@ npm run demo:intrusion                    # parcours complet commente, etape par
 ```
 
 Le pas-à-pas détaillé, les variantes et l'interprétation des résultats sont
- décrits dans [`docs/SIMULATION-INTRUSION.md`](docs/SIMULATION-INTRUSION.md).
+décrits dans [`docs/SIMULATION-INTRUSION.md`](docs/SIMULATION-INTRUSION.md).
 
 ---
 
@@ -130,6 +137,7 @@ Le pas-à-pas détaillé, les variantes et l'interprétation des résultats sont
 | `npm run smoke:subscriptions` | Test de fumée abonnements & Mobile Money (51 contrôles) |
 | `npm run smoke:mutations` | Test de fumée mutations géographiques (46 contrôles) |
 | `npm run smoke:health` | Test de fumée e-santé connectée (59 contrôles) |
+| `npm run smoke:simulation` | Test de fumée du banc d'essai du matériel (34 contrôles) |
 | `npm run smoke:all` | Socle + alertes + interventions + abonnements + mutations + e-santé (328 contrôles) |
 | `npm run mqtt:broker` | Broker MQTT embarqué (aedes) pour le développement |
 | `npm run demo:alarme` | Déclenche une intrusion (MQTT) : `-- --dtmf 1`, `-- --capteur PIR` |

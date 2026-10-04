@@ -111,6 +111,8 @@ Reste à traiter dans l'itération 6 :
 ## Itération 7 — Applications et industrialisation
 
 - [x] Application web admin / ZMC (React + Vite + TypeScript)
+- [x] Banc d'essai du matériel : jouer un kit SafAlert depuis la console (déclencher
+      un capteur, répondre à l'appel) sans broker MQTT — démonstrations et formation
 - [ ] Application mobile client et agents (React Native + Expo) avec suivi GPS
 - [ ] Guidage vocal des agents (TTS/STT) et assistant IA embarqué
 - [ ] Multi-langue de l'interface (FR, EN, SW, LN, LU, KG)

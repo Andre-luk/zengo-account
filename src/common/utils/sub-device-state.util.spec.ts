@@ -1,4 +1,4 @@
-import { decodeSubDeviceState } from './sub-device-state.util';
+import { decodeSubDeviceState, encodeSubDeviceState } from './sub-device-state.util';
 
 describe('decodeSubDeviceState', () => {
   it('interprete un etat nominal', () => {
@@ -35,5 +35,32 @@ describe('decodeSubDeviceState', () => {
     expect(state.open).toBe(true);
 
     expect(decodeSubDeviceState('1').offline).toBe(true);
+  });
+});
+
+describe('encodeSubDeviceState', () => {
+  it('encode un etat nominal', () => {
+    expect(encodeSubDeviceState('NORMAL')).toBe('00000000');
+  });
+
+  it('encode un contact ouvert (bit 7)', () => {
+    expect(encodeSubDeviceState('OPEN')).toBe('00000001');
+  });
+
+  it('encode une batterie faible (bit 6)', () => {
+    expect(encodeSubDeviceState('LOW_BATTERY')).toBe('00000010');
+  });
+
+  it('encode un sabotage (bit 5)', () => {
+    expect(encodeSubDeviceState('TAMPER')).toBe('00000100');
+  });
+
+  it('fait l aller-retour avec le decodeur', () => {
+    for (const state of ['NORMAL', 'OPEN', 'TAMPER', 'LOW_BATTERY'] as const) {
+      const decoded = decodeSubDeviceState(encodeSubDeviceState(state));
+      expect(decoded.open).toBe(state === 'OPEN');
+      expect(decoded.tamper).toBe(state === 'TAMPER');
+      expect(decoded.lowBattery).toBe(state === 'LOW_BATTERY');
+    }
   });
 });
